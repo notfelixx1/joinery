@@ -2,6 +2,9 @@
 name = "joinery"
 version = "0.1.0"
 description = "Joinery Tools — native iced frontend"
+authors = ["notfelixx1"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/notfelixx1/joinery"
 edition = "2021"
 
 [[bin]]

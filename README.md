@@ -36,6 +36,18 @@ accounts, no ads, no telemetry.
 Also included: dark & light themes, English & Russian UI, SQLite-backed
 settings and undo journal.
 
+## Screenshots
+
+| Light | Dark |
+| --- | --- |
+| ![Light theme](docs/screenshots/light.png) | ![Dark theme](docs/screenshots/dark.png) |
+
+## Download
+
+Grab a ready binary from the
+[Releases](https://github.com/notfelixx1/joinery/releases/latest) page —
+Windows, Linux and macOS builds are attached to every release.
+
 ## Building from source
 
 Requirements: [Rust](https://rustup.rs) 1.77+ and the usual platform build
@@ -105,7 +117,13 @@ pick whichever suits your project.
 корзину.
 
 **Монетизация:** весь функционал бесплатен. Разработка поддерживается
-dобровольными донатами (GitHub Sponsors / Ko-fi / Buy Me a Coffee).
+добровольными донатами (GitHub Sponsors / Ko-fi / Buy Me a Coffee).
+
+## Скачать
+
+Готовые сборки — на странице
+[Releases](https://github.com/notfelixx1/joinery/releases/latest):
+Windows, Linux и macOS, к каждому релизу.
 
 ## Сборка из исходников
 

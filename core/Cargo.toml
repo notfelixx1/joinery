@@ -2,9 +2,9 @@
 name = "joinery-tools"
 version = "0.1.0"
 description = "Joinery Tools — one app. Everyday tools. No nonsense."
-authors = ["Joinery Tools contributors"]
+authors = ["notfelixx1"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/joinery-tools/joinery-tools"
+repository = "https://github.com/notfelixx1/joinery"
 edition = "2021"
 rust-version = "1.77"
 
