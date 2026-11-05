@@ -638,28 +638,32 @@ fn tab_row<'a, T: Copy + 'static>(
         let active = is_active(*tool);
         let label = tr(app.lang, key).to_string();
         let m = msg(*tool);
-        let tab_btn = button(text(label).size(13))
-            .width(Length::Fill)
-            .padding([8, 4])
-            .style(move |_, status| {
-                let mut st = button::Style {
-                    background: Some(Color::TRANSPARENT.into()),
-                    text_color: if active { s.text } else { s.text_muted },
-                    border: iced::Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: 0.0.into(),
-                    },
-                    shadow: Default::default(),
-                };
-                if let button::Status::Hovered = status {
-                    if !active {
-                        st.text_color = s.text;
-                    }
+        let tab_btn = button(
+            container(text(label).size(13))
+                .width(Length::Fill)
+                .align_x(Alignment::Center),
+        )
+        .width(Length::Fill)
+        .padding([8, 4])
+        .style(move |_, status| {
+            let mut st = button::Style {
+                background: Some(Color::TRANSPARENT.into()),
+                text_color: if active { s.text } else { s.text_muted },
+                border: iced::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: 0.0.into(),
+                },
+                shadow: Default::default(),
+            };
+            if let button::Status::Hovered = status {
+                if !active {
+                    st.text_color = s.text;
                 }
-                st
-            })
-            .on_press(m);
+            }
+            st
+        })
+        .on_press(m);
         let underline = container(iced::widget::Space::with_height(Length::Fixed(2.0)))
             .width(Length::Fill)
             .style(move |_| container::Style {
