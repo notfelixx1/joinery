@@ -42,7 +42,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .size(12)
                 .style(muted(dark))
                 .width(Length::Fill),
-            text(tr(lang, "history.files"))
+            text(tr(lang, "common.files"))
                 .size(12)
                 .style(muted(dark))
                 .width(Length::Fixed(100.0)),
