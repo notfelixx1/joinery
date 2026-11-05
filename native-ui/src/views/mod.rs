@@ -247,6 +247,7 @@ pub fn empty_state<'a, M: Clone + 'static>(
     }
     container(col)
         .width(Length::Fill)
+        .align_x(Alignment::Center)
         .padding(48)
         .style(move |_| card_style(dark))
         .into()
@@ -299,7 +300,10 @@ pub fn recent_block<'a, M: Clone + 'static>(
             .on_press(on_pick(path)),
         );
     }
-    col.into()
+    container(col)
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .into()
 }
 
 pub fn error_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
