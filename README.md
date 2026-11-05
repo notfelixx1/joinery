@@ -83,9 +83,7 @@ native-ui/          iced frontend
 Joinery is free. If it saves you time, a small donation helps fix bugs, test
 on more platforms and keep the software independent:
 
-- GitHub Sponsors
-- Ko-fi
-- Buy Me a Coffee
+- [Ko-fi](https://ko-fi.com/notfst)
 
 No subscriptions. No locked features. No pressure.
 

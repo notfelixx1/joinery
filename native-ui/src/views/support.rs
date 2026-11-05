@@ -1,5 +1,5 @@
-use iced::widget::{column, container, row, text};
-use iced::{Alignment, Element, Length};
+use iced::widget::{button, column, container, row, text};
+use iced::{Alignment, Color, Element, Length};
 
 use crate::app::{App, Msg};
 use crate::i18n::tr;
@@ -34,11 +34,12 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     .spacing(12)
     .width(Length::Fill);
 
-    let links = column![
-        link_row("support.sponsors", "github.com/sponsors", lang, dark),
-        link_row("support.kofi", "ko-fi.com", lang, dark),
-        link_row("support.bmc", "buymeacoffee.com", lang, dark),
-    ]
+    let links = column![link_row(
+        "Ko-fi",
+        "ko-fi.com/notfst",
+        "https://ko-fi.com/notfst",
+        dark,
+    )]
     .spacing(8);
 
     column![card(
@@ -78,17 +79,39 @@ fn point(key: &'static str, lang: crate::i18n::Lang) -> Element<'static, Msg> {
         .into()
 }
 
+/// One donation link: the whole row is a button that opens the browser.
 fn link_row(
-    key: &'static str,
-    url: &'static str,
-    lang: crate::i18n::Lang,
+    label: &'static str,
+    display_url: &'static str,
+    open_url: &'static str,
     dark: bool,
 ) -> Element<'static, Msg> {
-    row![
-        text(tr(lang, key)).size(13),
-        text(url).size(12).style(muted(dark)),
-    ]
-    .spacing(8)
-    .align_y(Alignment::Center)
+    button(
+        row![
+            text(label).size(13),
+            text(display_url).size(12).style(muted(dark)),
+        ]
+        .spacing(8)
+        .align_y(Alignment::Center),
+    )
+    .padding([6, 10])
+    .style(move |_, status| {
+        let mut st = button::Style {
+            background: Some(Color::TRANSPARENT.into()),
+            text_color: palette::scheme(dark).text,
+            border: iced::Border {
+                color: palette::scheme(dark).border,
+                width: 1.0,
+                radius: 8.0.into(),
+            },
+            shadow: Default::default(),
+        };
+        if let button::Status::Hovered = status {
+            st.background = Some(palette::scheme(dark).surface_hover.into());
+            st.border.color = palette::scheme(dark).accent;
+        }
+        st
+    })
+    .on_press(Msg::OpenUrl(open_url))
     .into()
 }

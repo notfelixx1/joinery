@@ -226,6 +226,7 @@ pub enum Msg {
     DevTool(DevTool),
     ToggleTheme,
     ToggleLang,
+    OpenUrl(&'static str),
 
     RenChooseFolder,
     RenFolder(Option<String>),
@@ -544,6 +545,10 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                     Lang::Ru => "ru",
                 },
             );
+            Task::none()
+        }
+        Msg::OpenUrl(url) => {
+            let _ = open::that(url);
             Task::none()
         }
 
