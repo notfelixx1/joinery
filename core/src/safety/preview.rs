@@ -42,17 +42,44 @@ fn normalize_lexically(path: &Path) -> PathBuf {
     out
 }
 
+/// Resolve symlinks on the existing prefix of `path` and keep the rest
+/// lexical. Plain `dunce::canonicalize` fails for not-yet-existing
+/// targets, and the lexical fallback lives in a different name space
+/// than a canonicalized `root` (macOS: `/tmp` is a symlink to
+/// `/private/tmp`), which made every missing target look like it
+/// escapes the folder.
+fn canonicalize_best_effort(path: &Path) -> PathBuf {
+    if let Ok(c) = dunce::canonicalize(path) {
+        return c;
+    }
+    let mut missing: Vec<std::ffi::OsString> = Vec::new();
+    let mut cur = path.to_path_buf();
+    while let Some(parent) = cur.parent() {
+        if let Some(name) = cur.file_name() {
+            missing.push(name.to_os_string());
+        }
+        if let Ok(c) = dunce::canonicalize(parent) {
+            let mut out = c;
+            for part in missing.iter().rev() {
+                out.push(part);
+            }
+            return out;
+        }
+        cur = parent.to_path_buf();
+    }
+    lexical_absolute(path)
+}
+
 /// True when `path` is (or resolves to) something inside `root`.
 ///
-/// Both sides are resolved the same way (`dunce::canonicalize` keeps
+/// Both sides are resolved the same way: canonicalized as far as the
+/// file system allows, lexically for the missing tail (`dunce` keeps
 /// plain `C:\...` form on Windows — `fs::canonicalize` would return
-/// `\\?\C:\...` and never match the lexical fallback). Existing paths
-/// resolve through the file system; missing targets fall back to
-/// lexical normalization. On Windows the comparison is
-/// case-insensitive, matching the file system.
+/// `\\?\C:\...` and never match the lexical fallback). On Windows the
+/// comparison is case-insensitive, matching the file system.
 pub fn is_within(path: &Path, root: &Path) -> bool {
-    let resolved = dunce::canonicalize(path).unwrap_or_else(|_| lexical_absolute(path));
-    let resolved_root = dunce::canonicalize(root).unwrap_or_else(|_| lexical_absolute(root));
+    let resolved = canonicalize_best_effort(path);
+    let resolved_root = canonicalize_best_effort(root);
     starts_with_componentwise(&resolved, &resolved_root)
 }
 
@@ -163,6 +190,9 @@ mod tests {
         // Non-existent target outside root is not.
         let ghost_out = other.path().join("ghost.txt");
         assert!(!is_within(&ghost_out, root.path()));
+        // Several missing levels still land in the root's name space.
+        let deep_ghost = root.path().join("no").join("such").join("g.txt");
+        assert!(is_within(&deep_ghost, root.path()));
     }
 
     #[test]
