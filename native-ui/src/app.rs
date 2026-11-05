@@ -374,8 +374,9 @@ impl App {
         let mut dark = false;
         let mut lang = Lang::En;
         if let Some(conn) = &db {
-            if database::get_setting(conn, "theme") == Some("light".to_string()) {
-                dark = false;
+            // Light is the default; a saved "dark" must survive a restart.
+            if let Some(v) = database::get_setting(conn, "theme") {
+                dark = v == "dark";
             }
             if let Some(v) = database::get_setting(conn, "lang") {
                 lang = Lang::from_str(&v);
