@@ -639,6 +639,7 @@ fn tab_row<'a, T: Copy + 'static>(
         let label = tr(app.lang, key).to_string();
         let m = msg(*tool);
         let tab_btn = button(text(label).size(13))
+            .width(Length::Fill)
             .padding([8, 4])
             .style(move |_, status| {
                 let mut st = button::Style {
@@ -669,7 +670,7 @@ fn tab_row<'a, T: Copy + 'static>(
                 }),
                 ..Default::default()
             });
-        r = r.push(column![tab_btn, underline].spacing(4).width(Length::Shrink));
+        r = r.push(column![tab_btn, underline].spacing(4).width(Length::Fill));
     }
     container(r)
         .width(Length::Fill)
@@ -688,56 +689,107 @@ fn tab_row<'a, T: Copy + 'static>(
         .into()
 }
 
+/// True when the current screen is an empty state: those render without
+/// the scroll (a scrollable gives its content unbounded height, where
+/// `Fill` collapses) and center vertically in the window instead.
+fn is_empty_view(app: &App) -> bool {
+    match app.page {
+        Page::Files => match app.file_tool {
+            FileTool::Renamer => app.ren.folder.is_none(),
+            FileTool::Duplicates => {
+                app.dup.folder.is_none() && app.dup.result.is_none() && !app.dup.scanning
+            }
+            FileTool::Analyzer => app.ana.folder.is_none() && app.ana.analysis.is_none(),
+            FileTool::Checksum => app.cks.paths.is_empty() && app.cks.results.is_none(),
+        },
+        Page::History => app.history.is_empty(),
+        _ => false,
+    }
+}
+
 pub fn view(app: &App) -> Element<'_, Msg> {
+    let empty = is_empty_view(app);
+
+    // Tabs are built per branch: `Element` is not `Clone`, and both
+    // branches need their own instance.
     let content: Element<Msg> = match app.page {
         Page::Home => home::view(app),
-        Page::Files => column![
-            file_tabs(app),
-            match app.file_tool {
-                FileTool::Renamer => renamer::view(app),
-                FileTool::Duplicates => duplicates::view(app),
-                FileTool::Analyzer => analyzer::view(app),
-                FileTool::Checksum => checksum::view(app),
-            }
-        ]
-        .spacing(16)
-        .width(Length::Fill)
-        .into(),
-        Page::Developer => column![
-            dev_tabs(app),
-            match app.dev_tool {
-                DevTool::JsonYaml => jsonyaml::view(app),
-                DevTool::Diff => diff::view(app),
-            }
-        ]
-        .spacing(16)
-        .width(Length::Fill)
-        .into(),
+        Page::Files => match app.file_tool {
+            FileTool::Renamer => renamer::view(app),
+            FileTool::Duplicates => duplicates::view(app),
+            FileTool::Analyzer => analyzer::view(app),
+            FileTool::Checksum => checksum::view(app),
+        },
+        Page::Developer => match app.dev_tool {
+            DevTool::JsonYaml => jsonyaml::view(app),
+            DevTool::Diff => diff::view(app),
+        },
         Page::History => history::view(app),
         Page::System => system::view(app),
         Page::Support => support::view(app),
     };
 
-    let main = column![
-        topbar(app),
-        scrollable(
-            container(content)
+    let body: Element<Msg> = if empty {
+        // Tabs stay on top, the empty state centers in the remaining
+        // height — no scroll, nothing to scroll to anyway.
+        let centered = container(container(content).padding(iced::Padding {
+            top: 16.0,
+            right: 28.0,
+            bottom: 16.0,
+            left: 28.0,
+        }))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .align_y(Alignment::Center);
+        match app.page {
+            Page::Files => column![file_tabs(app), centered]
+                .spacing(16)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into(),
+            Page::Developer => column![dev_tabs(app), centered]
+                .spacing(16)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into(),
+            _ => centered.into(),
+        }
+    } else {
+        let with_tabs: Element<Msg> = match app.page {
+            Page::Files => column![file_tabs(app), content]
+                .spacing(16)
+                .width(Length::Fill)
+                .into(),
+            Page::Developer => column![dev_tabs(app), content]
+                .spacing(16)
+                .width(Length::Fill)
+                .into(),
+            _ => content,
+        };
+        column![scrollable(
+            container(with_tabs)
                 .padding(iced::Padding {
                     top: 16.0,
                     right: 28.0,
                     bottom: 40.0,
-                    left: 28.0
+                    left: 28.0,
                 })
-                .width(Length::Fill)
+                .width(Length::Fill),
         )
         .width(Length::Fill)
-        .height(Length::Fill),
-    ]
-    .width(Length::Fill)
-    .height(Length::Fill);
-
-    row![sidebar(app), main]
+        .height(Length::Fill),]
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
+    };
+
+    row![
+        sidebar(app),
+        column![topbar(app), body]
+            .width(Length::Fill)
+            .height(Length::Fill)
+    ]
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
 }
