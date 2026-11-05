@@ -98,10 +98,22 @@ mod tests {
         let old_text = "one\ntwo\nthree\n";
         let new_text = "one\ndos\nthree\nfour\n";
         let result = diff_texts(old_text, new_text);
-        assert!(result.stats.added >= 2, "expect additions, got {:?}", result.stats);
-        assert!(result.stats.removed >= 1, "expect removals, got {:?}", result.stats);
+        assert!(
+            result.stats.added >= 2,
+            "expect additions, got {:?}",
+            result.stats
+        );
+        assert!(
+            result.stats.removed >= 1,
+            "expect removals, got {:?}",
+            result.stats
+        );
 
-        let added: Vec<&DiffRow> = result.rows.iter().filter(|r| r.kind == DiffKind::Add).collect();
+        let added: Vec<&DiffRow> = result
+            .rows
+            .iter()
+            .filter(|r| r.kind == DiffKind::Add)
+            .collect();
         let deleted: Vec<&DiffRow> = result
             .rows
             .iter()

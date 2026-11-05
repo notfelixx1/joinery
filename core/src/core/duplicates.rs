@@ -121,7 +121,9 @@ pub fn find_duplicates(
     let mut groups: Vec<DuplicateGroup> = Vec::new();
     for (size, paths) in candidates {
         // Pass 2: cheap partial hash.
-        let partial = group_by(&paths, |p| hash_prefix(p, Algorithm::Sha256, PARTIAL_HASH_BYTES.min(size)))?;
+        let partial = group_by(&paths, |p| {
+            hash_prefix(p, Algorithm::Sha256, PARTIAL_HASH_BYTES.min(size))
+        })?;
         for (_, similar_start) in partial {
             if similar_start.len() < 2 {
                 continue;
@@ -134,16 +136,9 @@ pub fn find_duplicates(
                 }
                 let files = duplicates
                     .into_iter()
-                    .map(|path| DuplicateFile {
-                        path,
-                        size,
-                    })
+                    .map(|path| DuplicateFile { path, size })
                     .collect();
-                groups.push(DuplicateGroup {
-                    hash,
-                    size,
-                    files,
-                });
+                groups.push(DuplicateGroup { hash, size, files });
             }
         }
     }

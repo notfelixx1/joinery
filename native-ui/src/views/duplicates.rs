@@ -2,9 +2,9 @@ use iced::widget::{checkbox, column, row, scrollable, text, text_input};
 use iced::{font, Alignment, Element, Length};
 
 use crate::app::{App, Msg};
+use crate::format_bytes;
 use crate::i18n::{fmt, tr};
 use crate::views::{btn, btn_danger, card, error_box, muted, ok_box};
-use crate::format_bytes;
 
 pub fn view(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
@@ -64,7 +64,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             } else {
                 row![]
             }
-            .padding(iced::Padding { top: 8.0, ..Default::default() }),
+            .padding(iced::Padding {
+                top: 8.0,
+                ..Default::default()
+            }),
         ]
         .spacing(4)
         .width(Length::Fill),
@@ -110,7 +113,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     dark,
                     &format!(
                         "{} ({})",
-                        fmt(tr(lang, "dup.deleteSelected"), &[("n", selected_count.to_string())]),
+                        fmt(
+                            tr(lang, "dup.deleteSelected"),
+                            &[("n", selected_count.to_string())]
+                        ),
                         format_bytes(selected_bytes)
                     ),
                     if !d.scanning && selected_count > 0 {
@@ -125,13 +131,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         );
 
         if result.groups.is_empty() {
-            results = results.push(text(tr(lang, "common.noResults")).size(13).style(muted(dark)));
-        } else {
             results = results.push(
-                text(tr(lang, "dup.keepHint"))
-                    .size(11)
+                text(tr(lang, "common.noResults"))
+                    .size(13)
                     .style(muted(dark)),
             );
+        } else {
+            results = results.push(text(tr(lang, "dup.keepHint")).size(11).style(muted(dark)));
 
             let mut groups_col = column![].spacing(12).width(Length::Fill);
             for (index, group) in result.groups.iter().enumerate() {
@@ -161,9 +167,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     dark,
                     column![
                         row![
-                            text(format!("#{}", index + 1)).size(12).font(font::Font::MONOSPACE),
+                            text(format!("#{}", index + 1))
+                                .size(12)
+                                .font(font::Font::MONOSPACE),
                             text(format_bytes(group.size)).size(12),
-                            text(format!("× {}", group.files.len())).size(12).style(muted(dark)),
+                            text(format!("× {}", group.files.len()))
+                                .size(12)
+                                .style(muted(dark)),
                             text(format!("{}…", &group.hash[..12.min(group.hash.len())]))
                                 .size(12)
                                 .font(font::Font::MONOSPACE)
@@ -180,10 +190,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             results = results.push(scrollable(groups_col).height(Length::Fixed(380.0)));
         }
 
-        col = col.push(card(
-            dark,
-            column![results].spacing(12).width(Length::Fill),
-        ));
+        col = col.push(card(dark, column![results].spacing(12).width(Length::Fill)));
     }
 
     col.into()
@@ -191,5 +198,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
 fn btn_primary_scan(dark: bool, lang: crate::i18n::Lang, enabled: bool) -> Element<'static, Msg> {
     let label = tr(lang, "common.scan").to_string();
-    crate::views::btn_primary(dark, &label, if enabled { Some(Msg::DupScan) } else { None })
+    crate::views::btn_primary(
+        dark,
+        &label,
+        if enabled { Some(Msg::DupScan) } else { None },
+    )
 }

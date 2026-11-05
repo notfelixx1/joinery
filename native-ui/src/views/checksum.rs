@@ -81,7 +81,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .style(muted(dark))
                 .width(Length::Fill)
                 .wrapping(iced::widget::text::Wrapping::Word),
-            text(tr(lang, "checksum.algorithm")).size(11).style(muted(dark)),
+            text(tr(lang, "checksum.algorithm"))
+                .size(11)
+                .style(muted(dark)),
             iced::widget::pick_list(
                 ALGS,
                 Some(<checksum::Algorithm as Into<Alg>>::into(c.algorithm)),
@@ -113,29 +115,41 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     if let Some(results) = &c.results {
         let expected = c.expected.trim().to_lowercase();
         let has_match = !expected.is_empty()
-            && results
-                .iter()
-                .any(|r| r.hash.as_deref().map(|h| h.to_lowercase() == expected).unwrap_or(false));
+            && results.iter().any(|r| {
+                r.hash
+                    .as_deref()
+                    .map(|h| h.to_lowercase() == expected)
+                    .unwrap_or(false)
+            });
 
         let mut body = column![].spacing(14).width(Length::Fill);
 
         body = body.push(
             column![
-                text(tr(lang, "checksum.verify")).size(11).style(muted(dark)),
+                text(tr(lang, "checksum.verify"))
+                    .size(11)
+                    .style(muted(dark)),
                 text_input(tr(lang, "checksum.verify.hint"), &c.expected)
                     .on_input(Msg::CksExpected)
                     .size(13)
                     .font(font::Font::MONOSPACE),
                 if !expected.is_empty() {
                     if has_match {
-                        row![text(tr(lang, "checksum.match")).size(12).style(text_color(s.ok))]
+                        row![text(tr(lang, "checksum.match"))
+                            .size(12)
+                            .style(text_color(s.ok))]
                     } else {
-                        row![text(tr(lang, "checksum.mismatch")).size(12).style(text_color(s.danger))]
+                        row![text(tr(lang, "checksum.mismatch"))
+                            .size(12)
+                            .style(text_color(s.danger))]
                     }
                 } else {
                     row![]
                 }
-                .padding(iced::Padding { top: 4.0, ..Default::default() }),
+                .padding(iced::Padding {
+                    top: 4.0,
+                    ..Default::default()
+                }),
             ]
             .spacing(4)
             .width(Length::Fill),
@@ -155,7 +169,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
 fn result_row(dark: bool, lang: crate::i18n::Lang, item: &ChecksumItem) -> Element<'_, Msg> {
     let s = palette::scheme(dark);
-    let name = item.path.to_string_lossy().rsplit(['\\', '/']).next().unwrap_or("").to_string();
+    let name = item
+        .path
+        .to_string_lossy()
+        .rsplit(['\\', '/'])
+        .next()
+        .unwrap_or("")
+        .to_string();
 
     let hash_cell: Element<Msg> = match &item.hash {
         Some(hash) => text(hash)
@@ -180,7 +200,6 @@ fn result_row(dark: bool, lang: crate::i18n::Lang, item: &ChecksumItem) -> Eleme
             tr(lang, "common.copy"),
             Msg::CksCopy(item.hash.clone().unwrap_or_default()),
         )
-        .into()
     } else {
         text("").size(13).into()
     };

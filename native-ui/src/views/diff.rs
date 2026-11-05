@@ -63,11 +63,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             } else {
                 tr(lang, "common.compare").to_string()
             },
-            if !d.busy {
-                Some(Msg::DiffRun)
-            } else {
-                None
-            },
+            if !d.busy { Some(Msg::DiffRun) } else { None },
         ),
         btn(dark, tr(lang, "common.clear"), Msg::DiffClear),
         iced::widget::horizontal_space(),
@@ -78,22 +74,31 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     if let Some(result) = &d.result {
         actions = actions
             .push(
-                text(fmt(tr(lang, "dev.added"), &[("n", result.stats.added.to_string())]))
-                    .size(12)
-                    .font(font::Font::MONOSPACE)
-                    .style(text_color(s.ok)),
+                text(fmt(
+                    tr(lang, "dev.added"),
+                    &[("n", result.stats.added.to_string())],
+                ))
+                .size(12)
+                .font(font::Font::MONOSPACE)
+                .style(text_color(s.ok)),
             )
             .push(
-                text(fmt(tr(lang, "dev.removed"), &[("n", result.stats.removed.to_string())]))
-                    .size(12)
-                    .font(font::Font::MONOSPACE)
-                    .style(text_color(s.danger)),
+                text(fmt(
+                    tr(lang, "dev.removed"),
+                    &[("n", result.stats.removed.to_string())],
+                ))
+                .size(12)
+                .font(font::Font::MONOSPACE)
+                .style(text_color(s.danger)),
             )
             .push(
-                text(fmt(tr(lang, "dev.unchanged"), &[("n", result.stats.unchanged.to_string())]))
-                    .size(12)
-                    .font(font::Font::MONOSPACE)
-                    .style(text_color(s.text_muted)),
+                text(fmt(
+                    tr(lang, "dev.unchanged"),
+                    &[("n", result.stats.unchanged.to_string())],
+                ))
+                .size(12)
+                .font(font::Font::MONOSPACE)
+                .style(text_color(s.text_muted)),
             );
     }
     controls = controls.push(actions);
@@ -114,22 +119,16 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             };
             rows = rows.push(
                 row![
-                    text(row_data
-                        .old_line
-                        .map(|n| n.to_string())
-                        .unwrap_or_default())
-                    .size(11)
-                    .font(font::Font::MONOSPACE)
-                    .style(muted(dark))
-                    .width(Length::Fixed(40.0)),
-                    text(row_data
-                        .new_line
-                        .map(|n| n.to_string())
-                        .unwrap_or_default())
-                    .size(11)
-                    .font(font::Font::MONOSPACE)
-                    .style(muted(dark))
-                    .width(Length::Fixed(40.0)),
+                    text(row_data.old_line.map(|n| n.to_string()).unwrap_or_default())
+                        .size(11)
+                        .font(font::Font::MONOSPACE)
+                        .style(muted(dark))
+                        .width(Length::Fixed(40.0)),
+                    text(row_data.new_line.map(|n| n.to_string()).unwrap_or_default())
+                        .size(11)
+                        .font(font::Font::MONOSPACE)
+                        .style(muted(dark))
+                        .width(Length::Fixed(40.0)),
                     text(format!("{}{}", sign, row_data.text))
                         .size(12)
                         .font(font::Font::MONOSPACE)
@@ -141,10 +140,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .padding([2, 8]),
             );
         }
-        col = col.push(card(
-            dark,
-            scrollable(rows).height(Length::Fixed(420.0)),
-        ));
+        col = col.push(card(dark, scrollable(rows).height(Length::Fixed(420.0))));
     }
 
     col.into()

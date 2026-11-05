@@ -5,9 +5,9 @@ lists the guarantees the 0.1 core makes and how they are enforced.
 
 ## Privacy guarantees
 
-- **No network.** The app performs no HTTP requests; the Tauri config
-  ships a restrictive CSP (`default-src 'self'`). There are no update
-  pings, no crash reporting, no analytics — nothing.
+- **No network.** The app performs no HTTP requests — it contains no
+  networking code at all. There are no update pings, no crash reporting,
+  no analytics — nothing.
 - **No telemetry.** Nothing is collected, nothing is sent.
 - **Local storage only.** SQLite database (settings + undo journal) in the
   OS app-data directory. Uninstalling removes the app; the database stays
@@ -48,9 +48,9 @@ lists the guarantees the 0.1 core makes and how they are enforced.
 
 ## Threat model notes
 
-- The Rust command layer treats the frontend as untrusted input: paths are
-  re-validated server-side (in the core), and options are typed serde
-  structs — unknown fields are rejected rather than ignored.
+- The core treats its callers as untrusted input: paths are re-validated
+  in the core, and options are typed structs — invalid values are rejected
+  rather than ignored.
 - Long operations stream progress and can be observed; the UI stays
   responsive (`spawn_blocking`).
 - Text-file loading for the Developer tools is capped at 5 MiB to keep

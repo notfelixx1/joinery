@@ -236,7 +236,10 @@ pub enum Msg {
     RenApply,
     RenApplyReady(Result<renamer::ApplyOutcome, String>),
     RenUndo,
-    RenUndoReady { total: usize, res: Result<usize, String> },
+    RenUndoReady {
+        total: usize,
+        res: Result<usize, String>,
+    },
 
     DupChooseFolder,
     DupFolder(Option<String>),
@@ -273,7 +276,10 @@ pub enum Msg {
 
     DiffEdit(bool, text_editor::Action),
     DiffLoad(bool),
-    DiffFileReady { into_old: bool, res: Result<String, String> },
+    DiffFileReady {
+        into_old: bool,
+        res: Result<String, String>,
+    },
     DiffRun,
     DiffDone(Result<text_diff::DiffResult, String>),
     DiffClear,
@@ -445,7 +451,9 @@ pub fn subscription(app: &App) -> Subscription<Msg> {
             let result = handle
                 .await
                 .unwrap_or_else(|e| Err(std::io::Error::other(e.to_string())));
-            let _ = out.send(Msg::DupDone(result.map_err(|e| e.to_string()))).await;
+            let _ = out
+                .send(Msg::DupDone(result.map_err(|e| e.to_string())))
+                .await;
         }),
     )
 }
@@ -471,10 +479,13 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         }
         Msg::ToggleLang => {
             app.lang = app.lang.toggle();
-            app.persist("lang", match app.lang {
-                Lang::En => "en",
-                Lang::Ru => "ru",
-            });
+            app.persist(
+                "lang",
+                match app.lang {
+                    Lang::En => "en",
+                    Lang::Ru => "ru",
+                },
+            );
             Task::none()
         }
 
@@ -613,10 +624,10 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             match res {
                 Ok(undone) => {
                     let template = crate::i18n::tr(app.lang, "renamer.undoDone");
-                    app.ren.note = Some(crate::i18n::fmt(template, &[
-                        ("n", undone.to_string()),
-                        ("total", total.to_string()),
-                    ]));
+                    app.ren.note = Some(crate::i18n::fmt(
+                        template,
+                        &[("n", undone.to_string()), ("total", total.to_string())],
+                    ));
                 }
                 Err(err) => app.ren.error = Some(err),
             }
@@ -673,7 +684,13 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                 .groups
                 .iter()
                 .flat_map(|g| g.files.iter())
-                .filter(|f| app.dup.selected.get(&f.path.to_string_lossy().to_string()).copied().unwrap_or(false))
+                .filter(|f| {
+                    app.dup
+                        .selected
+                        .get(&f.path.to_string_lossy().to_string())
+                        .copied()
+                        .unwrap_or(false)
+                })
                 .map(|f| f.path.clone())
                 .collect();
             if paths.is_empty() {
@@ -691,7 +708,10 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                         .set_description(&confirm_text)
                         .set_buttons(rfd::MessageButtons::OkCancel)
                         .show();
-                    if matches!(confirmed, rfd::MessageDialogResult::Ok | rfd::MessageDialogResult::Yes) {
+                    if matches!(
+                        confirmed,
+                        rfd::MessageDialogResult::Ok | rfd::MessageDialogResult::Yes
+                    ) {
                         Ok(undo::delete_to_trash(&paths))
                     } else {
                         Err("cancelled".to_string())
@@ -705,10 +725,13 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                 let deleted = results.iter().filter(|(_, ok, _)| *ok).count();
                 let failed = results.len() - deleted;
                 let template = crate::i18n::tr(app.lang, "dup.deleted");
-                app.dup.note = Some(crate::i18n::fmt(template, &[
-                    ("deleted", deleted.to_string()),
-                    ("failed", failed.to_string()),
-                ]));
+                app.dup.note = Some(crate::i18n::fmt(
+                    template,
+                    &[
+                        ("deleted", deleted.to_string()),
+                        ("failed", failed.to_string()),
+                    ],
+                ));
                 app.start_dup_scan()
             }
             Err(err) if err == "cancelled" => Task::none(),
@@ -872,9 +895,7 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.jy.busy = true;
             app.jy.error = None;
             Task::perform(
-                tokio::task::spawn_blocking(move || {
-                    Ok(validators::format_json(&text, minify))
-                }),
+                tokio::task::spawn_blocking(move || Ok(validators::format_json(&text, minify))),
                 |res| Msg::JyFormatReady(flatten(res)),
             )
         }

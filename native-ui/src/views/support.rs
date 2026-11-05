@@ -13,7 +13,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let amount = column![
         text("$5").size(28).style(text_color(s.accent)),
-        text(tr(lang, "support.amountNote")).size(12).style(muted(dark)),
+        text(tr(lang, "support.amountNote"))
+            .size(12)
+            .style(muted(dark)),
         column![
             point("support.point1", lang),
             point("support.point2", lang),
@@ -39,33 +41,31 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     ]
     .spacing(8);
 
-    column![
-        card(
-            dark,
-            column![
-                text(tr(lang, "support.title")).size(20),
-                text(tr(lang, "support.subtitle"))
-                    .size(13)
-                    .style(muted(dark)),
-                container(amount)
-                    .width(Length::Fixed(480.0))
-                    .padding(20)
-                    .style(move |_| iced::widget::container::Style {
-                        background: None,
-                        text_color: Some(s.text),
-                        border: iced::Border {
-                            color: s.border,
-                            width: 1.0,
-                            radius: 12.0.into(),
-                        },
-                        ..Default::default()
-                    }),
-                links,
-            ]
-            .spacing(12)
-            .width(Length::Fill),
-        ),
-    ]
+    column![card(
+        dark,
+        column![
+            text(tr(lang, "support.title")).size(20),
+            text(tr(lang, "support.subtitle"))
+                .size(13)
+                .style(muted(dark)),
+            container(amount)
+                .width(Length::Fixed(480.0))
+                .padding(20)
+                .style(move |_| iced::widget::container::Style {
+                    background: None,
+                    text_color: Some(s.text),
+                    border: iced::Border {
+                        color: s.border,
+                        width: 1.0,
+                        radius: 12.0.into(),
+                    },
+                    ..Default::default()
+                }),
+            links,
+        ]
+        .spacing(12)
+        .width(Length::Fill),
+    ),]
     .spacing(16)
     .width(Length::Fill)
     .into()

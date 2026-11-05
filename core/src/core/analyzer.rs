@@ -57,7 +57,11 @@ pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
         };
         let path = entry.path();
         let is_dir = fs::metadata(&path).map(|m| m.is_dir()).unwrap_or(false);
-        top_level.push((entry.file_name().to_string_lossy().to_string(), path, is_dir));
+        top_level.push((
+            entry.file_name().to_string_lossy().to_string(),
+            path,
+            is_dir,
+        ));
     }
 
     // Single walk over the whole tree.
@@ -112,11 +116,11 @@ pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
         // Keep the top-N largest files (min-heap pattern).
         largest.push((size, entry.into_path()));
         if largest.len() > TOP_LARGEST * 4 {
-            largest.sort_by(|a, b| b.0.cmp(&a.0));
+            largest.sort_by_key(|b| std::cmp::Reverse(b.0));
             largest.truncate(TOP_LARGEST);
         }
     }
-    largest.sort_by(|a, b| b.0.cmp(&a.0));
+    largest.sort_by_key(|b| std::cmp::Reverse(b.0));
     largest.truncate(TOP_LARGEST);
 
     let mut entries: Vec<EntryStat> = top_level

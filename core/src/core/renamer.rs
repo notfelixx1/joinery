@@ -205,7 +205,11 @@ pub fn plan_rename(root: &Path, options: &RenameOptions) -> io::Result<Vec<Renam
         let (to, status, reason) = if new_name == file_name {
             (path.clone(), RenameStatus::NoChange, None)
         } else if let Err(problem) = check_new_filename(&new_name) {
-            (path.with_file_name(&new_name), RenameStatus::InvalidName, Some(problem))
+            (
+                path.with_file_name(&new_name),
+                RenameStatus::InvalidName,
+                Some(problem),
+            )
         } else {
             let target = path.with_file_name(&new_name);
             if target.exists() {
@@ -259,7 +263,9 @@ pub fn apply_plan(
         };
 
         if !is_within(&item.from, root) || !is_within(&item.to, root) {
-            outcome.skipped.push(skip("path escapes the selected folder"));
+            outcome
+                .skipped
+                .push(skip("path escapes the selected folder"));
             continue;
         }
         if !item.from.exists() {
@@ -271,7 +277,9 @@ pub fn apply_plan(
                 // Explicit, user-visible decision — still refuse to
                 // overwrite with an identical path.
                 if item.from == item.to {
-                    outcome.skipped.push(skip("source and target are the same file"));
+                    outcome
+                        .skipped
+                        .push(skip("source and target are the same file"));
                     continue;
                 }
             } else {
@@ -322,11 +330,9 @@ mod tests {
         };
         let plan = plan_rename(dir.path(), &options).expect("plan");
         assert_eq!(plan.len(), 2);
-        assert!(plan
-            .iter()
-            .all(|item| item.status == RenameStatus::Ready
-                && item.to_name.starts_with("2024_vacation")
-                && item.to_name.ends_with("_final.jpg")));
+        assert!(plan.iter().all(|item| item.status == RenameStatus::Ready
+            && item.to_name.starts_with("2024_vacation")
+            && item.to_name.ends_with("_final.jpg")));
     }
 
     #[test]
@@ -389,7 +395,10 @@ mod tests {
         let plan = plan_rename(dir.path(), &options).expect("plan");
         let statuses: Vec<RenameStatus> = plan.iter().map(|i| i.status).collect();
         assert_eq!(
-            statuses.iter().filter(|s| **s == RenameStatus::Ready).count(),
+            statuses
+                .iter()
+                .filter(|s| **s == RenameStatus::Ready)
+                .count(),
             1
         );
         assert_eq!(
@@ -457,10 +466,13 @@ mod tests {
         let flat = plan_rename(dir.path(), &opts()).expect("plan");
         assert_eq!(flat.len(), 0);
 
-        let recursive = plan_rename(dir.path(), &RenameOptions {
-            include_subfolders: true,
-            ..opts()
-        })
+        let recursive = plan_rename(
+            dir.path(),
+            &RenameOptions {
+                include_subfolders: true,
+                ..opts()
+            },
+        )
         .expect("plan");
         assert_eq!(recursive.len(), 1);
     }

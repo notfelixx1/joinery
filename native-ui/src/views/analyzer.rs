@@ -83,7 +83,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                                 let s = palette::scheme(dark);
                                 progress_bar::Style {
                                     background: s.surface_hover.into(),
-                                    bar: if is_largest { s.accent.into() } else { s.border.into() },
+                                    bar: if is_largest {
+                                        s.accent.into()
+                                    } else {
+                                        s.border.into()
+                                    },
                                     border: iced::Border {
                                         color: Color::TRANSPARENT,
                                         width: 0.0,
@@ -93,15 +97,24 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                             }),
                     )
                     .width(Length::Fill)
-                    .padding(iced::Padding { top: 0.0, right: 12.0, bottom: 0.0, left: 12.0 }),
+                    .padding(iced::Padding {
+                        top: 0.0,
+                        right: 12.0,
+                        bottom: 0.0,
+                        left: 12.0
+                    }),
                     text(format_bytes(entry.size))
                         .size(12)
                         .width(Length::Fixed(90.0))
                         .style(text_color(s.text)),
-                    text(if entry.files > 0 { entry.files.to_string() } else { String::new() })
-                        .size(12)
-                        .style(muted(dark))
-                        .width(Length::Fixed(70.0)),
+                    text(if entry.files > 0 {
+                        entry.files.to_string()
+                    } else {
+                        String::new()
+                    })
+                    .size(12)
+                    .style(muted(dark))
+                    .width(Length::Fixed(70.0)),
                 ]
                 .spacing(8)
                 .align_y(Alignment::Center)
@@ -143,12 +156,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         if !analysis.largest.is_empty() {
             col = col.push(card(
                 dark,
-                column![
-                    text(tr(lang, "analyzer.largest")).size(15),
-                    largest,
-                ]
-                .spacing(8)
-                .width(Length::Fill),
+                column![text(tr(lang, "analyzer.largest")).size(15), largest,]
+                    .spacing(8)
+                    .width(Length::Fill),
             ));
         }
     }

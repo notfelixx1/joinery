@@ -14,12 +14,36 @@ struct ToolCard {
 }
 
 const TOOLS: [ToolCard; 6] = [
-    ToolCard { page: Page::Files, key: "tool.renamer", icon: icons::tag },
-    ToolCard { page: Page::Files, key: "tool.duplicates", icon: icons::copy },
-    ToolCard { page: Page::Files, key: "tool.analyzer", icon: icons::pie_chart },
-    ToolCard { page: Page::Files, key: "tool.checksum", icon: icons::shield_check },
-    ToolCard { page: Page::Developer, key: "tool.jsonyaml", icon: icons::braces },
-    ToolCard { page: Page::Developer, key: "tool.diff", icon: icons::columns },
+    ToolCard {
+        page: Page::Files,
+        key: "tool.renamer",
+        icon: icons::tag,
+    },
+    ToolCard {
+        page: Page::Files,
+        key: "tool.duplicates",
+        icon: icons::copy,
+    },
+    ToolCard {
+        page: Page::Files,
+        key: "tool.analyzer",
+        icon: icons::pie_chart,
+    },
+    ToolCard {
+        page: Page::Files,
+        key: "tool.checksum",
+        icon: icons::shield_check,
+    },
+    ToolCard {
+        page: Page::Developer,
+        key: "tool.jsonyaml",
+        icon: icons::braces,
+    },
+    ToolCard {
+        page: Page::Developer,
+        key: "tool.diff",
+        icon: icons::columns,
+    },
 ];
 
 pub fn view(app: &App) -> Element<'_, Msg> {
@@ -49,12 +73,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     .spacing(12)
     .width(Length::Fill);
 
-    let mut tools_col = column![
-        text(tr(app.lang, "home.tools.title")).size(14),
-    ]
-    .spacing(16)
-    .width(Length::Fill)
-    .padding(iced::Padding { top: 36.0, ..Default::default() });
+    let mut tools_col = column![text(tr(app.lang, "home.tools.title")).size(14),]
+        .spacing(16)
+        .width(Length::Fill)
+        .padding(iced::Padding {
+            top: 36.0,
+            ..Default::default()
+        });
 
     for pair in TOOLS.chunks(2) {
         let mut r = row![].spacing(16).width(Length::Fill);
@@ -67,7 +92,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         tools_col = tools_col.push(r);
     }
 
-    column![hero, tools_col].spacing(0).width(Length::Fill).into()
+    column![hero, tools_col]
+        .spacing(0)
+        .width(Length::Fill)
+        .into()
 }
 
 fn badge<'a>(dark: bool, label: &'a str) -> Element<'a, Msg> {
@@ -98,35 +126,33 @@ fn tool_card(app: &App, tool: &ToolCard) -> Element<'static, Msg> {
     });
 
     let inner = container(
-        column![
-            row![
-                container(icon)
-                    .width(Length::Fixed(32.0))
-                    .height(Length::Fixed(32.0))
-                    .align_x(Alignment::Center)
-                    .align_y(Alignment::Center)
-                    .style(move |_| container::Style {
-                        background: Some(s.surface_active.into()),
-                        border: iced::Border {
-                            color: Color::TRANSPARENT,
-                            width: 0.0,
-                            radius: 8.0.into(),
-                        },
-                        ..Default::default()
-                    }),
-                column![
-                    text(title).size(15),
-                    text(desc)
-                        .size(12)
-                        .style(muted(dark))
-                        .wrapping(iced::widget::text::Wrapping::Word),
-                ]
-                .spacing(4)
-                .width(Length::Fill),
+        column![row![
+            container(icon)
+                .width(Length::Fixed(32.0))
+                .height(Length::Fixed(32.0))
+                .align_x(Alignment::Center)
+                .align_y(Alignment::Center)
+                .style(move |_| container::Style {
+                    background: Some(s.surface_active.into()),
+                    border: iced::Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: 8.0.into(),
+                    },
+                    ..Default::default()
+                }),
+            column![
+                text(title).size(15),
+                text(desc)
+                    .size(12)
+                    .style(muted(dark))
+                    .wrapping(iced::widget::text::Wrapping::Word),
             ]
-            .spacing(12)
-            .align_y(Alignment::Center),
+            .spacing(4)
+            .width(Length::Fill),
         ]
+        .spacing(12)
+        .align_y(Alignment::Center),]
         .spacing(8)
         .width(Length::Fill),
     )

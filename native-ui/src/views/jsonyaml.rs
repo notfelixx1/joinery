@@ -18,7 +18,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let mut top = column![].spacing(12).width(Length::Fill);
     top = top.push(
         row![
-            iced::widget::pick_list(kinds, Some(j.kind.clone()), Msg::JyKind).text_size(13),
+            iced::widget::pick_list(kinds, Some(j.kind), Msg::JyKind).text_size(13),
             iced::widget::horizontal_space(),
             btn(dark, tr(lang, "common.example"), Msg::JyExample),
             btn(dark, tr(lang, "common.clear"), Msg::JyClear),
@@ -38,40 +38,42 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         _ => String::new(),
     };
 
-    let output = scrollable(
-        container_text(output_text, dark),
-    )
-    .height(Length::Fixed(280.0))
-    .width(Length::Fill);
+    let output = scrollable(container_text(output_text, dark))
+        .height(Length::Fixed(280.0))
+        .width(Length::Fill);
 
     top = top.push(
         row![
-            column![text(tr(lang, "dev.input")).size(12).style(muted(dark)), input]
-                .spacing(4)
-                .width(Length::Fill),
-            column![text(tr(lang, "dev.output")).size(12).style(muted(dark)), output]
-                .spacing(4)
-                .width(Length::Fill),
+            column![
+                text(tr(lang, "dev.input")).size(12).style(muted(dark)),
+                input
+            ]
+            .spacing(4)
+            .width(Length::Fill),
+            column![
+                text(tr(lang, "dev.output")).size(12).style(muted(dark)),
+                output
+            ]
+            .spacing(4)
+            .width(Length::Fill),
         ]
         .spacing(12)
         .width(Length::Fill),
     );
 
-    let mut actions = row![
-        btn_primary(
-            dark,
-            &if j.busy {
-                tr(lang, "common.loading").to_string()
-            } else {
-                tr(lang, "common.validate").to_string()
-            },
-            if !j.busy && !j.content.text().trim().is_empty() {
-                Some(Msg::JyValidate)
-            } else {
-                None
-            },
-        ),
-    ]
+    let mut actions = row![btn_primary(
+        dark,
+        &if j.busy {
+            tr(lang, "common.loading").to_string()
+        } else {
+            tr(lang, "common.validate").to_string()
+        },
+        if !j.busy && !j.content.text().trim().is_empty() {
+            Some(Msg::JyValidate)
+        } else {
+            None
+        },
+    ),]
     .spacing(8)
     .align_y(Alignment::Center);
 
@@ -87,7 +89,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         } else {
             palette::scheme(dark).danger
         };
-        let key = if result.valid { "dev.valid" } else { "dev.invalid" };
+        let key = if result.valid {
+            "dev.valid"
+        } else {
+            "dev.invalid"
+        };
         actions = actions.push(
             text(fmt(tr(lang, key), &[("kind", j.kind.to_string())]))
                 .size(12)
@@ -124,10 +130,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 fn container_text(content: String, dark: bool) -> Element<'static, Msg> {
     let s = palette::scheme(dark);
     if content.is_empty() {
-        text("")
-            .size(13)
-            .width(Length::Fill)
-            .into()
+        text("").size(13).width(Length::Fill).into()
     } else {
         text(content)
             .size(12)

@@ -1,7 +1,7 @@
 mod app;
 mod format;
-mod icons;
 mod i18n;
+mod icons;
 mod palette;
 mod views;
 

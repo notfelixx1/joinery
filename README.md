@@ -66,11 +66,6 @@ native-ui/          iced frontend
 └── src/views/      tool views
 ```
 
-## Roadmap
-
-See [docs/roadmap.md](docs/roadmap.md). Next up (0.2): System Tools —
-process viewer, network info, battery status.
-
 ## Support Joinery
 
 Joinery is free. If it saves you time, a small donation helps fix bugs, test
@@ -122,16 +117,3 @@ cargo build --release -p joinery
 
 Исполняемый файл появится в `target/release/joinery` (или
 `target/release/joinery.exe` на Windows).
-
-## План разработки
-
-| Этап | Статус |
-| --- | --- |
-| 1. Foundation — проект, Rust, iced, интерфейс | ✅ готово |
-| 2. Core Tools — Renamer, Checksum, Text Diff | ✅ готово |
-| 3. File Tools — Duplicate Finder, Folder Analyzer | ✅ готово |
-| 4. Safety — Preview, Undo, защита файлов | ✅ готово |
-| 5. Polish — настройки, документация, тесты | ✅ готово |
-| 6. Release — инсталляторы, GitHub Releases | 🚀 CI готов, релиз после тестирования |
-
-Подробности: [docs/roadmap.md](docs/roadmap.md).

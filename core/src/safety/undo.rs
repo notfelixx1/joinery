@@ -26,7 +26,11 @@ pub struct JournalEntry {
 }
 
 /// Persist a list of records; returns the journal id.
-pub fn save_journal(conn: &Connection, tool: &str, records: &[RenameRecord]) -> rusqlite::Result<i64> {
+pub fn save_journal(
+    conn: &Connection,
+    tool: &str,
+    records: &[RenameRecord],
+) -> rusqlite::Result<i64> {
     let payload = serde_json::to_string(records).expect("serialize journal payload");
     let now = Utc::now().to_rfc3339();
     conn.execute(
@@ -144,7 +148,10 @@ mod tests {
         mark_undone(&conn, id).expect("mark");
         let list = list_journals(&conn, 10).expect("list");
         assert!(list[0].undone);
-        assert!(load_records(&conn, id).is_none(), "undone journals are not re-undoable");
+        assert!(
+            load_records(&conn, id).is_none(),
+            "undone journals are not re-undoable"
+        );
     }
 
     #[test]

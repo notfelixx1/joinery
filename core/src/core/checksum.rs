@@ -166,7 +166,8 @@ mod tests {
         let mut same_start = content.clone();
         same_start[PARTIAL_HASH_BYTES as usize + 10] ^= 0xFF;
         let file2 = write_temp(&same_start);
-        let prefix2 = hash_prefix(file2.path(), Algorithm::Sha256, PARTIAL_HASH_BYTES).expect("hash");
+        let prefix2 =
+            hash_prefix(file2.path(), Algorithm::Sha256, PARTIAL_HASH_BYTES).expect("hash");
         assert_eq!(prefix, prefix2);
         // ...but the full hashes must differ.
         let full1 = hash_file(file.path(), Algorithm::Sha256).expect("hash");

@@ -18,8 +18,18 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let info = column![
         info_row(lang, dark, "system.os", os.to_string()),
-        info_row(lang, dark, "system.arch", std::env::consts::ARCH.to_string()),
-        info_row(lang, dark, "system.version", format!("Joinery Tools v{} (native)", env!("CARGO_PKG_VERSION"))),
+        info_row(
+            lang,
+            dark,
+            "system.arch",
+            std::env::consts::ARCH.to_string()
+        ),
+        info_row(
+            lang,
+            dark,
+            "system.version",
+            format!("Joinery Tools v{} (native)", env!("CARGO_PKG_VERSION"))
+        ),
     ]
     .spacing(0)
     .width(Length::Fill);
@@ -27,12 +37,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let mut col = column![].spacing(16).width(Length::Fill);
     col = col.push(card(
         dark,
-        column![
-            text(tr(lang, "system.info")).size(15),
-            info,
-        ]
-        .spacing(8)
-        .width(Length::Fill),
+        column![text(tr(lang, "system.info")).size(15), info,]
+            .spacing(8)
+            .width(Length::Fill),
     ));
     col = col.push(card(
         dark,

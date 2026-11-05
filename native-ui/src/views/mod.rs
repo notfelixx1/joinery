@@ -68,7 +68,11 @@ pub fn btn_style(dark: bool, variant: BtnVariant, status: button::Status) -> but
         text_color: base.2,
         border: iced::Border {
             color: base.1,
-            width: if variant == BtnVariant::Ghost { 0.0 } else { 1.0 },
+            width: if variant == BtnVariant::Ghost {
+                0.0
+            } else {
+                1.0
+            },
             radius: 8.0.into(),
         },
         shadow: Default::default(),
@@ -130,7 +134,11 @@ pub fn btn<M: Clone + 'static>(dark: bool, label: &str, msg: M) -> Element<'stat
         .into()
 }
 
-pub fn btn_primary<M: Clone + 'static>(dark: bool, label: &str, msg: Option<M>) -> Element<'static, M> {
+pub fn btn_primary<M: Clone + 'static>(
+    dark: bool,
+    label: &str,
+    msg: Option<M>,
+) -> Element<'static, M> {
     let mut b = button(text(label.to_string()).size(13))
         .padding([8, 16])
         .style(move |_, status| btn_style(dark, BtnVariant::Primary, status));
@@ -141,7 +149,11 @@ pub fn btn_primary<M: Clone + 'static>(dark: bool, label: &str, msg: Option<M>) 
     b.into()
 }
 
-pub fn btn_danger<M: Clone + 'static>(dark: bool, label: &str, msg: Option<M>) -> Element<'static, M> {
+pub fn btn_danger<M: Clone + 'static>(
+    dark: bool,
+    label: &str,
+    msg: Option<M>,
+) -> Element<'static, M> {
     let mut b = button(text(label.to_string()).size(13))
         .padding([8, 16])
         .style(move |_, status| btn_style(dark, BtnVariant::Danger, status));
@@ -197,12 +209,15 @@ pub fn error_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
     .width(Length::Fill)
     .padding(10)
     .style(move |_| container::Style {
-        background: Some(Color {
-            r: s.danger.r,
-            g: s.danger.g,
-            b: s.danger.b,
-            a: 0.06,
-        }.into()),
+        background: Some(
+            Color {
+                r: s.danger.r,
+                g: s.danger.g,
+                b: s.danger.b,
+                a: 0.06,
+            }
+            .into(),
+        ),
         text_color: Some(s.danger),
         border: iced::Border {
             color: Color {
@@ -230,12 +245,15 @@ pub fn ok_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
     .width(Length::Fill)
     .padding(10)
     .style(move |_| container::Style {
-        background: Some(Color {
-            r: s.ok.r,
-            g: s.ok.g,
-            b: s.ok.b,
-            a: 0.06,
-        }.into()),
+        background: Some(
+            Color {
+                r: s.ok.r,
+                g: s.ok.g,
+                b: s.ok.b,
+                a: 0.06,
+            }
+            .into(),
+        ),
         text_color: Some(s.ok),
         border: iced::Border {
             color: Color {
@@ -252,11 +270,7 @@ pub fn ok_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
     .into()
 }
 
-pub fn field<'a>(
-    dark: bool,
-    label: &str,
-    input: impl Into<Element<'a, Msg>>,
-) -> Element<'a, Msg> {
+pub fn field<'a>(dark: bool, label: &str, input: impl Into<Element<'a, Msg>>) -> Element<'a, Msg> {
     column![
         text(label.to_string()).size(12).style(muted(dark)),
         input.into(),
@@ -319,7 +333,11 @@ fn nav_button(
     .padding([9, 12])
     .style(move |_, status| {
         let mut st = button::Style {
-            background: Some(if active { s.surface_active.into() } else { Color::TRANSPARENT.into() }),
+            background: Some(if active {
+                s.surface_active.into()
+            } else {
+                Color::TRANSPARENT.into()
+            }),
             text_color: if active { s.accent } else { s.text_muted },
             border: iced::Border {
                 color: Color::TRANSPARENT,
@@ -351,27 +369,54 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
     let items = [
         (Page::Home, "nav.home", icons::home as fn() -> Svg<'static>),
-        (Page::Files, "nav.files", icons::folder as fn() -> Svg<'static>),
-        (Page::Developer, "nav.developer", icons::code as fn() -> Svg<'static>),
-        (Page::System, "nav.system", icons::monitor as fn() -> Svg<'static>),
-        (Page::Support, "nav.support", icons::heart as fn() -> Svg<'static>),
+        (
+            Page::Files,
+            "nav.files",
+            icons::folder as fn() -> Svg<'static>,
+        ),
+        (
+            Page::Developer,
+            "nav.developer",
+            icons::code as fn() -> Svg<'static>,
+        ),
+        (
+            Page::System,
+            "nav.system",
+            icons::monitor as fn() -> Svg<'static>,
+        ),
+        (
+            Page::Support,
+            "nav.support",
+            icons::heart as fn() -> Svg<'static>,
+        ),
     ];
 
-    let mut col = column![].spacing(4).width(Length::Fill).height(Length::Fill);
+    let mut col = column![]
+        .spacing(4)
+        .width(Length::Fill)
+        .height(Length::Fill);
     col = col.push(
-        row![logo(dark),
+        row![
+            logo(dark),
             column![
                 text("Joinery").size(16).font(iced::Font {
                     weight: iced::font::Weight::Semibold,
                     ..iced::Font::default()
                 }),
-                text(tr(app.lang, "app.tagline")).size(12).style(muted(dark)),
+                text(tr(app.lang, "app.tagline"))
+                    .size(12)
+                    .style(muted(dark)),
             ]
             .spacing(2)
         ]
         .spacing(10)
         .align_y(Alignment::Center)
-        .padding(iced::Padding { top: 4.0, right: 8.0, bottom: 24.0, left: 8.0 }),
+        .padding(iced::Padding {
+            top: 4.0,
+            right: 8.0,
+            bottom: 24.0,
+            left: 8.0,
+        }),
     );
 
     for (page, key, icon) in items {
@@ -388,11 +433,18 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
     col = col.push(divider(dark));
     col = col.push(
         column![
-            text(tr(app.lang, "footer.license")).size(12).style(muted(dark)),
+            text(tr(app.lang, "footer.license"))
+                .size(12)
+                .style(muted(dark)),
             text("v0.1.0").size(12).style(muted(dark)),
         ]
         .spacing(2)
-        .padding(iced::Padding { top: 12.0, right: 12.0, bottom: 4.0, left: 12.0 }),
+        .padding(iced::Padding {
+            top: 12.0,
+            right: 12.0,
+            bottom: 4.0,
+            left: 12.0,
+        }),
     );
 
     container(col)
@@ -414,28 +466,44 @@ fn topbar(app: &App) -> Element<'_, Msg> {
     row![
         text(tr(app.lang, title_key)).size(20),
         iced::widget::horizontal_space(),
-        icon_btn(app.dark, topbar_icon(app.dark, icons::globe()), Msg::ToggleLang),
         icon_btn(
             app.dark,
-            topbar_icon(app.dark, if app.dark { icons::sun() } else { icons::moon() }),
+            topbar_icon(app.dark, icons::globe()),
+            Msg::ToggleLang
+        ),
+        icon_btn(
+            app.dark,
+            topbar_icon(
+                app.dark,
+                if app.dark {
+                    icons::sun()
+                } else {
+                    icons::moon()
+                }
+            ),
             Msg::ToggleTheme
         ),
     ]
     .spacing(4)
     .align_y(Alignment::Center)
     .width(Length::Fill)
-    .padding(iced::Padding { top: 16.0, right: 28.0, bottom: 0.0, left: 28.0 })
+    .padding(iced::Padding {
+        top: 16.0,
+        right: 28.0,
+        bottom: 0.0,
+        left: 28.0,
+    })
     .into()
 }
 
-const FILE_TABS: [(FileTool, &'static str); 4] = [
+const FILE_TABS: [(FileTool, &str); 4] = [
     (FileTool::Renamer, "tool.renamer"),
     (FileTool::Duplicates, "tool.duplicates"),
     (FileTool::Analyzer, "tool.analyzer"),
     (FileTool::Checksum, "tool.checksum"),
 ];
 
-const DEV_TABS: [(DevTool, &'static str); 2] = [
+const DEV_TABS: [(DevTool, &str); 2] = [
     (DevTool::JsonYaml, "dev.jsonyaml"),
     (DevTool::Diff, "dev.diff"),
 ];
@@ -484,14 +552,21 @@ fn tab_row<'a, T: Copy + 'static>(
         let underline = container(iced::widget::Space::with_height(Length::Fixed(2.0)))
             .width(Length::Fill)
             .style(move |_| container::Style {
-                background: Some(if active { s.accent.into() } else { Color::TRANSPARENT.into() }),
+                background: Some(if active {
+                    s.accent.into()
+                } else {
+                    Color::TRANSPARENT.into()
+                }),
                 ..Default::default()
             });
         r = r.push(column![tab_btn, underline].spacing(4).width(Length::Shrink));
     }
     container(r)
         .width(Length::Fill)
-        .padding(iced::Padding { bottom: 8.0, ..Default::default() })
+        .padding(iced::Padding {
+            bottom: 8.0,
+            ..Default::default()
+        })
         .style(move |_| container::Style {
             border: iced::Border {
                 color: s.border,
@@ -506,19 +581,25 @@ fn tab_row<'a, T: Copy + 'static>(
 pub fn view(app: &App) -> Element<'_, Msg> {
     let content: Element<Msg> = match app.page {
         Page::Home => home::view(app),
-        Page::Files => column![file_tabs(app), match app.file_tool {
-            FileTool::Renamer => renamer::view(app),
-            FileTool::Duplicates => duplicates::view(app),
-            FileTool::Analyzer => analyzer::view(app),
-            FileTool::Checksum => checksum::view(app),
-        }]
+        Page::Files => column![
+            file_tabs(app),
+            match app.file_tool {
+                FileTool::Renamer => renamer::view(app),
+                FileTool::Duplicates => duplicates::view(app),
+                FileTool::Analyzer => analyzer::view(app),
+                FileTool::Checksum => checksum::view(app),
+            }
+        ]
         .spacing(16)
         .width(Length::Fill)
         .into(),
-        Page::Developer => column![dev_tabs(app), match app.dev_tool {
-            DevTool::JsonYaml => jsonyaml::view(app),
-            DevTool::Diff => diff::view(app),
-        }]
+        Page::Developer => column![
+            dev_tabs(app),
+            match app.dev_tool {
+                DevTool::JsonYaml => jsonyaml::view(app),
+                DevTool::Diff => diff::view(app),
+            }
+        ]
         .spacing(16)
         .width(Length::Fill)
         .into(),
@@ -528,9 +609,18 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let main = column![
         topbar(app),
-        scrollable(container(content).padding(iced::Padding { top: 16.0, right: 28.0, bottom: 40.0, left: 28.0 }).width(Length::Fill))
-            .width(Length::Fill)
-            .height(Length::Fill),
+        scrollable(
+            container(content)
+                .padding(iced::Padding {
+                    top: 16.0,
+                    right: 28.0,
+                    bottom: 40.0,
+                    left: 28.0
+                })
+                .width(Length::Fill)
+        )
+        .width(Length::Fill)
+        .height(Length::Fill),
     ]
     .width(Length::Fill)
     .height(Length::Fill);

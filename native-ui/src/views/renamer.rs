@@ -6,7 +6,9 @@ use joinery_tools::core::renamer::RenameStatus;
 use crate::app::{App, Msg};
 use crate::i18n::{fmt, tr};
 use crate::palette;
-use crate::views::{btn, btn_danger, btn_primary, card, error_box, muted, ok_box, text_color, field};
+use crate::views::{
+    btn, btn_danger, btn_primary, card, error_box, field, muted, ok_box, text_color,
+};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
@@ -34,7 +36,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         field(
             dark,
             tr(lang, "renamer.newExt"),
-            text_input("jpg", &r.new_ext).on_input(Msg::RenNewExt).size(13),
+            text_input("jpg", &r.new_ext)
+                .on_input(Msg::RenNewExt)
+                .size(13),
         ),
     ]
     .spacing(12)
@@ -44,7 +48,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         field(
             dark,
             tr(lang, "renamer.replace"),
-            text_input("vacation", &r.replace).on_input(Msg::RenReplace).size(13),
+            text_input("vacation", &r.replace)
+                .on_input(Msg::RenReplace)
+                .size(13),
         ),
         field(
             dark,
@@ -54,7 +60,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         field(
             dark,
             tr(lang, "renamer.pattern"),
-            text_input("photo_{n:3}", &r.pattern).on_input(Msg::RenPattern).size(13),
+            text_input("photo_{n:3}", &r.pattern)
+                .on_input(Msg::RenPattern)
+                .size(13),
         ),
     ]
     .spacing(12)
@@ -120,10 +128,22 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
         rows = rows.push(
             row![
-                text(tr(lang, "common.name")).size(11).style(muted(dark)).width(Length::FillPortion(4)),
-                text("→").size(11).style(muted(dark)).width(Length::Fixed(24.0)),
-                text(tr(lang, "common.name") /* target */).size(11).style(muted(dark)).width(Length::FillPortion(2)),
-                text(tr(lang, "common.status")).size(11).style(muted(dark)).width(Length::Fixed(110.0)),
+                text(tr(lang, "common.name"))
+                    .size(11)
+                    .style(muted(dark))
+                    .width(Length::FillPortion(4)),
+                text("→")
+                    .size(11)
+                    .style(muted(dark))
+                    .width(Length::Fixed(24.0)),
+                text(tr(lang, "common.name") /* target */)
+                    .size(11)
+                    .style(muted(dark))
+                    .width(Length::FillPortion(2)),
+                text(tr(lang, "common.status"))
+                    .size(11)
+                    .style(muted(dark))
+                    .width(Length::Fixed(110.0)),
             ]
             .padding([8, 8]),
         );
@@ -144,13 +164,20 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         .font(font::Font::MONOSPACE)
                         .width(Length::FillPortion(4))
                         .wrapping(iced::widget::text::Wrapping::Word),
-                    text("→").size(12).style(muted(dark)).width(Length::Fixed(24.0)),
-                    text(if unchanged { "=" } else { item.to_name.as_str() })
+                    text("→")
                         .size(12)
-                        .font(font::Font::MONOSPACE)
-                        .style(text_color(if unchanged { s.text_muted } else { s.accent }))
-                        .width(Length::FillPortion(2))
-                        .wrapping(iced::widget::text::Wrapping::Word),
+                        .style(muted(dark))
+                        .width(Length::Fixed(24.0)),
+                    text(if unchanged {
+                        "="
+                    } else {
+                        item.to_name.as_str()
+                    })
+                    .size(12)
+                    .font(font::Font::MONOSPACE)
+                    .style(text_color(if unchanged { s.text_muted } else { s.accent }))
+                    .width(Length::FillPortion(2))
+                    .wrapping(iced::widget::text::Wrapping::Word),
                     text(tr(lang, status_key))
                         .size(12)
                         .style(text_color(color))
@@ -187,7 +214,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 ]
                 .spacing(8)
                 .align_y(Alignment::Center)
-                .padding(iced::Padding { top: 12.0, ..Default::default() }),
+                .padding(iced::Padding {
+                    top: 12.0,
+                    ..Default::default()
+                }),
             ]
             .spacing(12)
             .width(Length::Fill),
@@ -196,17 +226,20 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     if let Some((applied, skipped)) = r.outcome {
         let template = tr(lang, "renamer.applyDone");
-        let summary = fmt(template, &[
-            ("applied", applied.to_string()),
-            ("skipped", skipped.to_string()),
-        ]);
+        let summary = fmt(
+            template,
+            &[
+                ("applied", applied.to_string()),
+                ("skipped", skipped.to_string()),
+            ],
+        );
         col = col.push(card(
             dark,
             row![
                 ok_box(dark, &summary),
-                    btn_danger(
-                        dark,
-                        tr(lang, "common.undo"),
+                btn_danger(
+                    dark,
+                    tr(lang, "common.undo"),
                     if r.journal.is_some() && !r.busy {
                         Some(Msg::RenUndo)
                     } else {
