@@ -97,15 +97,25 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         let mut results = column![].spacing(16).width(Length::Fill);
         results = results.push(
             row![
-                text(format!(
-                    "{} {} · {} {} · {} {}",
-                    result.stats.duplicate_groups,
-                    tr(lang, "dup.groups"),
-                    format_bytes(result.stats.wasted_bytes),
-                    tr(lang, "dup.wasted"),
-                    result.stats.scanned_files,
-                    tr(lang, "dup.scanned"),
-                ))
+                text({
+                    let mut line = format!(
+                        "{} {} · {} {} · {} {}",
+                        result.stats.duplicate_groups,
+                        tr(lang, "dup.groups"),
+                        format_bytes(result.stats.wasted_bytes),
+                        tr(lang, "dup.wasted"),
+                        result.stats.scanned_files,
+                        tr(lang, "dup.scanned"),
+                    );
+                    if result.stats.skipped_files > 0 {
+                        line.push_str(&format!(
+                            " · {} {}",
+                            result.stats.skipped_files,
+                            tr(lang, "dup.skipped")
+                        ));
+                    }
+                    line
+                })
                 .size(12)
                 .style(muted(dark)),
                 iced::widget::horizontal_space(),

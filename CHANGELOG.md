@@ -28,3 +28,14 @@ First public milestone: six quality tools instead of twenty half-made ones.
   file loading.
 - Dark & light themes, English & Russian interface (persisted in SQLite).
 - Windows / Linux / macOS build pipeline (GitHub Actions).
+
+### Fixed
+
+- Dark theme survives a restart — the saved theme setting is honored on
+  startup.
+- The folder-safety check resolves symlinked roots correctly (macOS
+  `/tmp`), instead of flagging every rename as escaping the folder.
+- Batch renamer and undo move files without ever replacing an existing
+  destination, closing the check-then-rename race; undo continues past
+  a failed record instead of stopping mid-way.
+- Duplicate Finder counts unreadable files in the scan statistics.

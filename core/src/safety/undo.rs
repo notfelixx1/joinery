@@ -4,7 +4,6 @@
 //! SQLite database before the UI reports success. Undo replays the
 //! stored records backwards; entries already undone are skipped.
 
-use std::fs;
 use std::io;
 use std::path::PathBuf;
 
@@ -88,13 +87,15 @@ pub fn mark_undone(conn: &Connection, journal_id: i64) -> rusqlite::Result<usize
 
 /// Replay records in reverse: move every `to` back to its `from`.
 /// Files that disappeared or were recreated meanwhile are skipped, not
-/// overwritten.
+/// overwritten, and one failing record never stops the rest.
 pub fn undo_records(records: &[RenameRecord]) -> io::Result<usize> {
     let mut undone = 0;
     for record in records.iter().rev() {
-        if record.to.exists() && !record.from.exists() {
-            fs::rename(&record.to, &record.from)?;
-            undone += 1;
+        // No-replace move: a file recreated under the original name is
+        // never clobbered, a vanished file just skips.
+        match crate::safety::fs::move_noreplace(&record.to, &record.from) {
+            Ok(true) => undone += 1,
+            Ok(false) | Err(_) => continue,
         }
     }
     Ok(undone)
@@ -114,6 +115,7 @@ pub fn delete_to_trash(paths: &[PathBuf]) -> Vec<(PathBuf, bool, Option<String>)
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use std::fs::File;
 
     fn memory_db() -> Connection {
@@ -152,6 +154,37 @@ mod tests {
             load_records(&conn, id).is_none(),
             "undone journals are not re-undoable"
         );
+    }
+
+    #[test]
+    fn undo_continues_after_a_missing_file() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let a = dir.path().join("a.txt");
+        let b = dir.path().join("b.txt");
+        let c = dir.path().join("c.txt");
+        let d = dir.path().join("d.txt");
+        File::create(&a).expect("create a");
+        fs::rename(&a, &b).expect("rename a -> b");
+        File::create(&c).expect("create c");
+        fs::rename(&c, &d).expect("rename c -> d");
+
+        // The b -> a record was already undone by hand; undo must still
+        // restore d -> c instead of aborting on the missing file.
+        fs::rename(&b, &a).expect("manual undo");
+        let records = vec![
+            RenameRecord {
+                from: a.clone(),
+                to: b.clone(),
+            },
+            RenameRecord {
+                from: c.clone(),
+                to: d.clone(),
+            },
+        ];
+        let undone = undo_records(&records).expect("undo");
+        assert_eq!(undone, 1);
+        assert!(a.exists() && !b.exists());
+        assert!(c.exists() && !d.exists());
     }
 
     #[test]

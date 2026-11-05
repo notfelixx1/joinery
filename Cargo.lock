@@ -1889,6 +1889,7 @@ dependencies = [
  "chrono",
  "dunce",
  "hex",
+ "libc",
  "md-5",
  "rusqlite",
  "serde",
@@ -1901,6 +1902,7 @@ dependencies = [
  "tokio",
  "trash",
  "walkdir",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

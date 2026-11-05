@@ -49,7 +49,7 @@ pub struct ScanResult {
     pub stats: ScanStats,
 }
 
-fn group_by<F>(paths: &[PathBuf], hash: F) -> io::Result<HashMap<String, Vec<PathBuf>>>
+fn group_by<F>(paths: &[PathBuf], hash: F, skipped: &mut u64) -> HashMap<String, Vec<PathBuf>>
 where
     F: Fn(&Path) -> io::Result<String>,
 {
@@ -57,11 +57,12 @@ where
     for path in paths {
         match hash(path) {
             Ok(digest) => groups.entry(digest).or_default().push(path.clone()),
-            // Unreadable files are skipped, never fatal.
-            Err(_) => continue,
+            // Unreadable files are skipped, never fatal — and counted,
+            // so the statistics stay honest.
+            Err(_) => *skipped += 1,
         }
     }
-    Ok(groups)
+    groups
 }
 
 /// Find duplicate files under `root`.
@@ -121,15 +122,21 @@ pub fn find_duplicates(
     let mut groups: Vec<DuplicateGroup> = Vec::new();
     for (size, paths) in candidates {
         // Pass 2: cheap partial hash.
-        let partial = group_by(&paths, |p| {
-            hash_prefix(p, Algorithm::Sha256, PARTIAL_HASH_BYTES.min(size))
-        })?;
+        let partial = group_by(
+            &paths,
+            |p| hash_prefix(p, Algorithm::Sha256, PARTIAL_HASH_BYTES.min(size)),
+            &mut skipped,
+        );
         for (_, similar_start) in partial {
             if similar_start.len() < 2 {
                 continue;
             }
             // Pass 3: full hash.
-            let full = group_by(&similar_start, |p| hash_file(p, Algorithm::Sha256))?;
+            let full = group_by(
+                &similar_start,
+                |p| hash_file(p, Algorithm::Sha256),
+                &mut skipped,
+            );
             for (hash, duplicates) in full {
                 if duplicates.len() < 2 {
                     continue;
@@ -244,5 +251,21 @@ mod tests {
         assert_eq!(result.groups.len(), 2);
         assert_eq!(result.groups[0].size, 100, "largest waste first");
         assert_eq!(result.groups[1].size, 10);
+    }
+
+    #[test]
+    fn hash_failures_are_counted_as_skipped() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let a = write(dir.path(), "a.bin", b"one");
+        let b = write(dir.path(), "b.bin", b"two");
+
+        let mut skipped = 0u64;
+        let groups = group_by(
+            &[a, b],
+            |_| Err(io::Error::other("unreadable")),
+            &mut skipped,
+        );
+        assert!(groups.is_empty());
+        assert_eq!(skipped, 2);
     }
 }

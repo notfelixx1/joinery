@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
+use crate::safety::fs::move_noreplace;
 use crate::safety::preview::{check_new_filename, detect_batch_collisions, is_within};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -272,27 +273,27 @@ pub fn apply_plan(
             outcome.skipped.push(skip("source file no longer exists"));
             continue;
         }
-        if item.to.exists() {
-            if allow_overwrite {
-                // Explicit, user-visible decision — still refuse to
-                // overwrite with an identical path.
-                if item.from == item.to {
-                    outcome
-                        .skipped
-                        .push(skip("source and target are the same file"));
-                    continue;
-                }
-            } else {
-                outcome.skipped.push(skip("target already exists"));
+        // An explicit allow_overwrite decision means "replace what is
+        // there". Everything else moves without ever replacing, so a
+        // file that appeared after the preview cannot be lost.
+        let moved = if allow_overwrite && item.to.exists() {
+            if item.from == item.to {
+                outcome
+                    .skipped
+                    .push(skip("source and target are the same file"));
                 continue;
             }
-        }
+            fs::rename(&item.from, &item.to).map(|_| true)
+        } else {
+            move_noreplace(&item.from, &item.to)
+        };
 
-        match fs::rename(&item.from, &item.to) {
-            Ok(()) => outcome.applied.push(RenameRecord {
+        match moved {
+            Ok(true) => outcome.applied.push(RenameRecord {
                 from: item.from.clone(),
                 to: item.to.clone(),
             }),
+            Ok(false) => outcome.skipped.push(skip("target already exists")),
             Err(err) => outcome.skipped.push(skip(&format!("rename failed: {err}"))),
         }
     }
@@ -454,6 +455,32 @@ mod tests {
         assert_eq!(outcome.applied.len(), 0);
         assert_eq!(outcome.skipped.len(), 1);
         assert!(victim.exists(), "outside file must stay untouched");
+    }
+
+    #[test]
+    fn apply_never_overwrites_an_existing_target() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = touch(dir.path(), "a.txt");
+        let victim = touch(dir.path(), "b.txt");
+
+        // Forge a "Ready" item whose target already exists on disk: the
+        // plan builder would flag it, so this models the race window
+        // between the preview and the apply step.
+        let forged = RenamePlanItem {
+            from: src.clone(),
+            to: victim.clone(),
+            from_name: "a.txt".into(),
+            to_name: "b.txt".into(),
+            status: RenameStatus::Ready,
+            reason: None,
+        };
+        let outcome = apply_plan(dir.path(), &[forged], false).expect("apply");
+        assert_eq!(outcome.applied.len(), 0);
+        assert_eq!(outcome.skipped.len(), 1);
+        assert!(
+            src.exists() && victim.exists(),
+            "neither file may be touched"
+        );
     }
 
     #[test]
