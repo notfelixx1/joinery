@@ -76,6 +76,41 @@ pub fn set_setting(conn: &Connection, key: &str, value: &str) -> rusqlite::Resul
     )
 }
 
+/// Read a recently-used list (newest first) stored as JSON under `key`.
+pub fn recent_list(conn: &Connection, key: &str) -> Vec<std::path::PathBuf> {
+    get_setting(conn, key)
+        .unwrap_or(None)
+        .and_then(|v| serde_json::from_str::<Vec<String>>(&v).ok())
+        .unwrap_or_default()
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect()
+}
+
+/// Add `path` to the recently-used list under `key` (newest first,
+/// deduplicated, capped at `max` entries).
+pub fn recent_push(
+    conn: &Connection,
+    key: &str,
+    path: &std::path::Path,
+    max: usize,
+) -> rusqlite::Result<()> {
+    let path_string = path.to_string_lossy().to_string();
+    let mut list: Vec<String> = get_setting(conn, key)
+        .unwrap_or(None)
+        .and_then(|v| serde_json::from_str(&v).ok())
+        .unwrap_or_default();
+    list.retain(|p| p != &path_string);
+    list.insert(0, path_string);
+    list.truncate(max);
+    set_setting(
+        conn,
+        key,
+        &serde_json::to_string(&list).expect("serialize recents"),
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,5 +143,19 @@ mod tests {
             Some("ru".to_string())
         );
         assert!(db_path.exists());
+    }
+
+    #[test]
+    fn recents_dedupe_and_cap() {
+        let conn = open_in_memory().expect("db");
+        let a = std::path::Path::new("C:\\photos");
+        let b = std::path::Path::new("C:\\work");
+        for path in [a, b, a] {
+            recent_push(&conn, "recent.renamer", path, 2).expect("push");
+        }
+        let list = recent_list(&conn, "recent.renamer");
+        assert_eq!(list.len(), 2, "deduplicated and capped");
+        assert_eq!(list[0], a, "most recent first");
+        assert_eq!(list[1], b);
     }
 }

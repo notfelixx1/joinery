@@ -3,6 +3,18 @@
 All notable changes to Joinery Tools are documented here.
 Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **History page** — every applied batch rename is listed with its date,
+  tool and file count; undo works right from the list, undone entries
+  stay as quiet history.
+- **Empty states** for the file tools: an icon, one sentence and the
+  next action instead of silent empty forms.
+- **Recent folders** — the last five folders per tool are remembered in
+  SQLite and offered as one click in the empty states.
+
 ## [0.1.0] — 2026-11-05
 
 First public milestone: six quality tools instead of twenty half-made ones.

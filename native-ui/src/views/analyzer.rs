@@ -5,12 +5,32 @@ use crate::app::{App, Msg};
 use crate::format::{format_bytes, percent};
 use crate::i18n::tr;
 use crate::palette;
-use crate::views::{btn, card, error_box, muted, text_color};
+use crate::views::{btn, card, empty_state, error_box, muted, recent_block, text_color};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
     let lang = app.lang;
     let a = &app.ana;
+
+    if a.folder.is_none() && a.analysis.is_none() {
+        let mut col = column![].spacing(16).width(Length::Fill);
+        col = col.push(empty_state(
+            dark,
+            crate::icons::pie_chart,
+            tr(lang, "tool.analyzer"),
+            tr(lang, "empty.analyzer.hint"),
+            Some((tr(lang, "common.chooseFolder"), Msg::AnaChooseFolder)),
+        ));
+        if !app.ana_recent.is_empty() {
+            col = col.push(recent_block(
+                dark,
+                tr(lang, "empty.recent"),
+                &app.ana_recent,
+                |p| Msg::AnaFolder(Some(p)),
+            ));
+        }
+        return col.into();
+    }
 
     let folder_text = a
         .folder

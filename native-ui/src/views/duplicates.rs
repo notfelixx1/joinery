@@ -4,12 +4,32 @@ use iced::{font, Alignment, Element, Length};
 use crate::app::{App, Msg};
 use crate::format_bytes;
 use crate::i18n::{fmt, tr};
-use crate::views::{btn, btn_danger, card, error_box, muted, ok_box};
+use crate::views::{btn, btn_danger, card, empty_state, error_box, muted, ok_box, recent_block};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
     let lang = app.lang;
     let d = &app.dup;
+
+    if d.folder.is_none() && d.result.is_none() && !d.scanning {
+        let mut col = column![].spacing(16).width(Length::Fill);
+        col = col.push(empty_state(
+            dark,
+            crate::icons::copy,
+            tr(lang, "tool.duplicates"),
+            tr(lang, "empty.duplicates.hint"),
+            Some((tr(lang, "common.chooseFolder"), Msg::DupChooseFolder)),
+        ));
+        if !app.dup_recent.is_empty() {
+            col = col.push(recent_block(
+                dark,
+                tr(lang, "empty.recent"),
+                &app.dup_recent,
+                |p| Msg::DupFolder(Some(p)),
+            ));
+        }
+        return col.into();
+    }
 
     let folder_text = d
         .folder

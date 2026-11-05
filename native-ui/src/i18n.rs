@@ -146,6 +146,23 @@ static EN: &[(&str, &str)] = &[
     ("theme.toggle", "Toggle theme"),
     ("theme.short", "Theme"),
     ("lang.toggle", "Switch language"),
+    ("nav.history", "History"),
+    ("history.date", "When"),
+    ("history.operation", "Operation"),
+    ("history.files", "{n} files"),
+    ("history.undone", "Undone"),
+    (
+        "history.empty",
+        "Nothing here yet — history appears after the first batch rename.",
+    ),
+    ("empty.recent", "Recent"),
+    (
+        "empty.renamer.hint",
+        "Pick a folder — see a preview of every rename before anything changes.",
+    ),
+    ("empty.duplicates.hint", "Pick a folder — I'll find duplicate files by content."),
+    ("empty.analyzer.hint", "Pick a folder — see what eats your disk space."),
+    ("empty.checksum.hint", "Pick files — get their SHA-256, SHA-1 or MD5 hashes."),
 ];
 
 static RU: &[(&str, &str)] = &[
@@ -272,6 +289,23 @@ static RU: &[(&str, &str)] = &[
     ("theme.toggle", "Переключить тему"),
     ("theme.short", "Тема"),
     ("lang.toggle", "Сменить язык"),
+    ("nav.history", "История"),
+    ("history.date", "Когда"),
+    ("history.operation", "Операция"),
+    ("history.files", "{n} файл(ов)"),
+    ("history.undone", "Отменено"),
+    (
+        "history.empty",
+        "Пока пусто — история появится после первой операции переименования.",
+    ),
+    ("empty.recent", "Недавние"),
+    (
+        "empty.renamer.hint",
+        "Выберите папку — покажу предпросмотр каждого переименования до любых изменений.",
+    ),
+    ("empty.duplicates.hint", "Выберите папку — найду дубликаты файлов по содержимому."),
+    ("empty.analyzer.hint", "Выберите папку — покажу, что занимает место на диске."),
+    ("empty.checksum.hint", "Выберите файлы — посчитаю хеши SHA-256, SHA-1 или MD5."),
 ];
 
 /// Translate a key for the given language; unknown keys render as empty.

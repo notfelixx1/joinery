@@ -14,6 +14,7 @@ use rusqlite::Connection;
 
 use joinery_tools::core::{analyzer, checksum, duplicates, renamer, text_diff, validators};
 use joinery_tools::safety::undo;
+use joinery_tools::safety::undo::JournalEntry;
 use joinery_tools::storage::database;
 
 use crate::i18n::Lang;
@@ -23,6 +24,7 @@ pub enum Page {
     Home,
     Files,
     Developer,
+    History,
     System,
     Support,
 }
@@ -216,6 +218,12 @@ impl Default for DiffState {
 #[derive(Debug, Clone)]
 pub enum Msg {
     Nav(Page),
+    UndoJournal(i64),
+    UndoJournalReady {
+        id: i64,
+        total: usize,
+        res: Result<usize, String>,
+    },
     FileTool(FileTool),
     DevTool(DevTool),
     ToggleTheme,
@@ -355,6 +363,12 @@ pub struct App {
     pub lang: Lang,
     pub db: Option<Connection>,
 
+    pub history: Vec<JournalEntry>,
+    pub history_note: Option<String>,
+    pub ren_recent: Vec<PathBuf>,
+    pub dup_recent: Vec<PathBuf>,
+    pub ana_recent: Vec<PathBuf>,
+
     pub ren: RenamerState,
     pub dup: DuplicatesState,
     pub ana: AnalyzerState,
@@ -379,6 +393,14 @@ impl App {
 
         let mut dark = false;
         let mut lang = Lang::En;
+        let (ren_recent, dup_recent, ana_recent) = match &db {
+            Some(conn) => (
+                database::recent_list(conn, "recent.renamer"),
+                database::recent_list(conn, "recent.duplicates"),
+                database::recent_list(conn, "recent.analyzer"),
+            ),
+            None => (Vec::new(), Vec::new(), Vec::new()),
+        };
         if let Some(conn) = &db {
             // Settings are cosmetic — fall back to the defaults when
             // the storage errors out.
@@ -397,6 +419,11 @@ impl App {
                 dark,
                 lang,
                 db,
+                history: Vec::new(),
+                history_note: None,
+                ren_recent,
+                dup_recent,
+                ana_recent,
                 ren: RenamerState::default(),
                 dup: DuplicatesState {
                     min_size: "1".to_string(),
@@ -413,6 +440,30 @@ impl App {
 
     pub fn iced_theme(&self) -> iced::Theme {
         iced::Theme::custom("Joinery".to_string(), crate::palette::palette(self.dark))
+    }
+
+    /// Reload the undo journal listing for the History page.
+    fn reload_history(&mut self) {
+        match self.db.as_ref() {
+            Some(conn) => {
+                self.history = undo::list_journals(conn, 50).unwrap_or_default();
+                self.history_note = None;
+            }
+            None => self.history.clear(),
+        }
+    }
+
+    /// Remember a picked folder in the per-tool recent list.
+    fn push_recent(
+        db: &mut Option<Connection>,
+        field: &mut Vec<PathBuf>,
+        key: &str,
+        path: &std::path::Path,
+    ) {
+        if let Some(conn) = db.as_mut() {
+            let _ = database::recent_push(conn, key, path, 5);
+            *field = database::recent_list(conn, key);
+        }
     }
 
     fn persist(&self, key: &str, value: &str) {
@@ -469,6 +520,9 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
     match msg {
         Msg::Nav(page) => {
             app.page = page;
+            if page == Page::History {
+                app.reload_history();
+            }
             Task::none()
         }
         Msg::FileTool(tool) => {
@@ -503,6 +557,10 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         }
         Msg::RenFolder(path) => {
             app.ren.folder = path.map(PathBuf::from);
+            if let Some(p) = app.ren.folder.as_ref() {
+                let path = p.clone();
+                App::push_recent(&mut app.db, &mut app.ren_recent, "recent.renamer", &path);
+            }
             Task::none()
         }
         Msg::RenFind(v) => {
@@ -697,6 +755,10 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         }
         Msg::DupFolder(path) => {
             app.dup.folder = path.map(PathBuf::from);
+            if let Some(p) = app.dup.folder.as_ref() {
+                let path = p.clone();
+                App::push_recent(&mut app.db, &mut app.dup_recent, "recent.duplicates", &path);
+            }
             Task::none()
         }
         Msg::DupMinSize(v) => {
@@ -803,6 +865,10 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         }
         Msg::AnaFolder(path) => {
             app.ana.folder = path.map(PathBuf::from);
+            if let Some(p) = app.ana.folder.as_ref() {
+                let path = p.clone();
+                App::push_recent(&mut app.db, &mut app.ana_recent, "recent.analyzer", &path);
+            }
             Task::none()
         }
         Msg::AnaRun => {
@@ -1032,6 +1098,49 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.diff.new_text = text_editor::Content::new();
             app.diff.result = None;
             app.diff.error = None;
+            Task::none()
+        }
+
+        // ---------- History ----------
+        Msg::UndoJournal(id) => {
+            let Some(conn) = app.db.as_ref() else {
+                return Task::none();
+            };
+            let records = match undo::load_records(conn, id) {
+                Ok(Some(records)) => records,
+                Ok(None) => {
+                    app.reload_history();
+                    return Task::none();
+                }
+                Err(err) => {
+                    app.history_note = Some(format!("undo journal read failed: {err}"));
+                    return Task::none();
+                }
+            };
+            let total = records.len();
+            Task::perform(
+                tokio::task::spawn_blocking(move || {
+                    undo::undo_records(&records).map_err(|e| e.to_string())
+                }),
+                move |res| Msg::UndoJournalReady {
+                    id,
+                    total,
+                    res: flatten(res),
+                },
+            )
+        }
+        Msg::UndoJournalReady { id, total, res } => {
+            match &res {
+                Ok(undone) => {
+                    if *undone == total {
+                        if let Some(conn) = app.db.as_mut() {
+                            let _ = undo::mark_undone(conn, id);
+                        }
+                    }
+                }
+                Err(err) => app.history_note = Some(err.clone()),
+            }
+            app.reload_history();
             Task::none()
         }
     }

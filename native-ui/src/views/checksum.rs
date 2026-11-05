@@ -6,7 +6,7 @@ use joinery_tools::core::checksum;
 use crate::app::{App, ChecksumItem, Msg};
 use crate::i18n::tr;
 use crate::palette;
-use crate::views::{btn, btn_primary, card, error_box, muted, text_color};
+use crate::views::{btn, btn_primary, card, empty_state, error_box, muted, text_color};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Alg {
@@ -51,6 +51,17 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
     let lang = app.lang;
     let c = &app.cks;
+
+    if c.paths.is_empty() && c.results.is_none() {
+        return empty_state(
+            dark,
+            crate::icons::shield_check,
+            tr(lang, "tool.checksum"),
+            tr(lang, "empty.checksum.hint"),
+            Some((tr(lang, "common.chooseFiles"), Msg::CksChooseFiles)),
+        );
+    }
+
     let s = palette::scheme(dark);
 
     let names: String = if c.paths.is_empty() {

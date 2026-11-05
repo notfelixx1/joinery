@@ -4,11 +4,14 @@ pub mod analyzer;
 pub mod checksum;
 pub mod diff;
 pub mod duplicates;
+pub mod history;
 pub mod home;
 pub mod jsonyaml;
 pub mod renamer;
 pub mod support;
 pub mod system;
+
+use std::path::PathBuf;
 
 use iced::widget::{button, column, container, row, scrollable, svg::Svg, text};
 use iced::{Alignment, Color, Element, Length};
@@ -198,6 +201,107 @@ fn topbar_icon(dark: bool, icon: Svg<'static>) -> Element<'static, Msg> {
     .into()
 }
 
+/// Centered "nothing here yet" card: icon, one line, one action.
+#[allow(clippy::too_many_arguments)]
+pub fn empty_state<'a, M: Clone + 'static>(
+    dark: bool,
+    icon: fn() -> Svg<'static>,
+    title: &str,
+    hint: &str,
+    action: Option<(&'a str, M)>,
+) -> Element<'a, M> {
+    let s = palette::scheme(dark);
+    let icon_widget = icon().style(move |_, _| iced::widget::svg::Style {
+        color: Some(s.text_muted),
+    });
+    let mut col = column![]
+        .spacing(10)
+        .align_x(Alignment::Center)
+        .max_width(520)
+        .width(Length::Fill);
+    col = col.push(
+        container(icon_widget)
+            .width(Length::Fixed(44.0))
+            .height(Length::Fixed(44.0))
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center)
+            .style(move |_| container::Style {
+                background: Some(s.surface_hover.into()),
+                border: iced::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: 10.0.into(),
+                },
+                ..Default::default()
+            }),
+    );
+    col = col.push(text(title.to_string()).size(15));
+    col = col.push(
+        text(hint.to_string())
+            .size(12)
+            .style(muted(dark))
+            .wrapping(iced::widget::text::Wrapping::Word),
+    );
+    if let Some((label, msg)) = action {
+        col = col.push(btn_primary(dark, label, Some(msg)));
+    }
+    container(col)
+        .width(Length::Fill)
+        .padding(48)
+        .style(move |_| card_style(dark))
+        .into()
+}
+
+/// Quiet list of recently used folders; clicking one replays the
+/// folder-pick message without opening the dialog.
+pub fn recent_block<'a, M: Clone + 'static>(
+    dark: bool,
+    label: &str,
+    items: &[PathBuf],
+    on_pick: impl Fn(String) -> M + Copy + 'a,
+) -> Element<'a, M> {
+    let mut col = column![]
+        .spacing(4)
+        .max_width(520)
+        .width(Length::Fill)
+        .align_x(Alignment::Center);
+    col = col.push(text(label.to_string()).size(12).style(muted(dark)));
+    for item in items {
+        let path = item.to_string_lossy().to_string();
+        col = col.push(
+            button(
+                text(path.clone())
+                    .size(12)
+                    .font(iced::font::Font::MONOSPACE)
+                    .style(move |_| text::Style {
+                        color: Some(palette::scheme(dark).text_muted),
+                    }),
+            )
+            .padding([6, 10])
+            .width(Length::Fill)
+            .style(move |_, status| {
+                let mut st = button::Style {
+                    background: Some(Color::TRANSPARENT.into()),
+                    text_color: palette::scheme(dark).text_muted,
+                    border: iced::Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: 8.0.into(),
+                    },
+                    shadow: Default::default(),
+                };
+                if let button::Status::Hovered = status {
+                    st.background = Some(palette::scheme(dark).surface_hover.into());
+                    st.text_color = palette::scheme(dark).text;
+                }
+                st
+            })
+            .on_press(on_pick(path)),
+        );
+    }
+    col.into()
+}
+
 pub fn error_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
     let s = palette::scheme(dark);
     container(
@@ -380,6 +484,11 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
             icons::code as fn() -> Svg<'static>,
         ),
         (
+            Page::History,
+            "nav.history",
+            icons::clock as fn() -> Svg<'static>,
+        ),
+        (
             Page::System,
             "nav.system",
             icons::monitor as fn() -> Svg<'static>,
@@ -460,6 +569,7 @@ fn topbar(app: &App) -> Element<'_, Msg> {
         Page::Home => "nav.home",
         Page::Files => "nav.files",
         Page::Developer => "nav.developer",
+        Page::History => "nav.history",
         Page::System => "nav.system",
         Page::Support => "nav.support",
     };
@@ -603,6 +713,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         .spacing(16)
         .width(Length::Fill)
         .into(),
+        Page::History => history::view(app),
         Page::System => system::view(app),
         Page::Support => support::view(app),
     };

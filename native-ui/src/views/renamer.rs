@@ -7,7 +7,8 @@ use crate::app::{App, Msg};
 use crate::i18n::{fmt, tr};
 use crate::palette;
 use crate::views::{
-    btn, btn_danger, btn_primary, card, error_box, field, muted, ok_box, text_color,
+    btn, btn_danger, btn_primary, card, empty_state, error_box, field, muted, ok_box, recent_block,
+    text_color,
 };
 
 pub fn view(app: &App) -> Element<'_, Msg> {
@@ -15,6 +16,26 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let lang = app.lang;
     let r = &app.ren;
     let s = palette::scheme(dark);
+
+    if r.folder.is_none() {
+        let mut col = column![].spacing(16).width(Length::Fill);
+        col = col.push(empty_state(
+            dark,
+            crate::icons::tag,
+            tr(lang, "tool.renamer"),
+            tr(lang, "empty.renamer.hint"),
+            Some((tr(lang, "common.chooseFolder"), Msg::RenChooseFolder)),
+        ));
+        if !app.ren_recent.is_empty() {
+            col = col.push(recent_block(
+                dark,
+                tr(lang, "empty.recent"),
+                &app.ren_recent,
+                |p| Msg::RenFolder(Some(p)),
+            ));
+        }
+        return col.into();
+    }
 
     let folder_text = r
         .folder
