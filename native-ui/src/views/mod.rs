@@ -202,7 +202,6 @@ fn topbar_icon(dark: bool, icon: Svg<'static>) -> Element<'static, Msg> {
 }
 
 /// Centered "nothing here yet" card: icon, one line, one action.
-#[allow(clippy::too_many_arguments)]
 pub fn empty_state<'a, M: Clone + 'static>(
     dark: bool,
     icon: fn() -> Svg<'static>,

@@ -2,7 +2,7 @@ use iced::widget::{checkbox, column, row, scrollable, text, text_input};
 use iced::{font, Alignment, Element, Length};
 
 use crate::app::{App, Msg};
-use crate::format_bytes;
+use crate::format::format_bytes;
 use crate::i18n::{fmt, tr};
 use crate::views::{btn, btn_danger, card, empty_state, error_box, muted, ok_box, recent_block};
 

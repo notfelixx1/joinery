@@ -9,8 +9,6 @@ mod icons;
 mod palette;
 mod views;
 
-pub use format::format_bytes;
-
 use iced::window;
 
 fn main() -> iced::Result {

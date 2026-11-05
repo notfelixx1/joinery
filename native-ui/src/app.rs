@@ -150,7 +150,6 @@ pub struct ChecksumState {
     pub busy: bool,
     pub results: Option<Vec<ChecksumItem>>,
     pub expected: String,
-    pub copied: Option<String>,
     pub error: Option<String>,
 }
 
@@ -162,7 +161,6 @@ impl Default for ChecksumState {
             busy: false,
             results: None,
             expected: String::new(),
-            copied: None,
             error: None,
         }
     }
@@ -271,7 +269,6 @@ pub enum Msg {
     CksDone(Vec<ChecksumItem>),
     CksExpected(String),
     CksCopy(String),
-    Copied,
 
     JyKind(JyKind),
     JyEdit(text_editor::Action),
@@ -945,11 +942,7 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.cks.expected = v;
             Task::none()
         }
-        Msg::CksCopy(hash) => {
-            app.cks.copied = Some(hash.clone());
-            iced::clipboard::write::<Msg>(hash).map(|_| Msg::Copied)
-        }
-        Msg::Copied => Task::none(),
+        Msg::CksCopy(hash) => iced::clipboard::write::<Msg>(hash),
 
         // ---------- JSON / YAML ----------
         Msg::JyKind(kind) => {

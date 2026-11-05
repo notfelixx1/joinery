@@ -17,21 +17,13 @@ const fn rgb(r: u8, g: u8, b: u8) -> Color {
 
 pub const INDIGO: Color = rgb(0x4f, 0x46, 0xe5);
 pub const INDIGO_LIGHT: Color = rgb(0x63, 0x66, 0xf1);
-#[allow(dead_code)]
-pub const INDIGO_DARK: Color = rgb(0x37, 0x33, 0xa3);
 pub const INDIGO_SURFACE: Color = rgb(0xee, 0xf2, 0xff);
 
 pub const SLATE_50: Color = rgb(0xf8, 0xfa, 0xfc);
 pub const SLATE_100: Color = rgb(0xf1, 0xf5, 0xf9);
 pub const SLATE_200: Color = rgb(0xe2, 0xe8, 0xf0);
-#[allow(dead_code)]
-pub const SLATE_300: Color = rgb(0xcb, 0xd5, 0xe1);
 pub const SLATE_400: Color = rgb(0x94, 0xa3, 0xb8);
 pub const SLATE_500: Color = rgb(0x64, 0x74, 0x8b);
-#[allow(dead_code)]
-pub const SLATE_600: Color = rgb(0x47, 0x55, 0x69);
-#[allow(dead_code)]
-pub const SLATE_700: Color = rgb(0x33, 0x41, 0x55);
 pub const SLATE_800: Color = rgb(0x1e, 0x29, 0x3b);
 pub const SLATE_900: Color = rgb(0x0f, 0x17, 0x2a);
 

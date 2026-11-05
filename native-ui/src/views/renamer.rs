@@ -37,11 +37,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         return col.into();
     }
 
+    // The empty state already handled a missing folder — one is
+    // guaranteed to be picked here.
     let folder_text = r
         .folder
         .as_ref()
         .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| tr(lang, "renamer.pickFolderFirst").to_string());
+        .unwrap_or_default();
 
     let left = column![
         field(
