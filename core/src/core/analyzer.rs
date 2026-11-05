@@ -48,8 +48,10 @@ pub struct FolderAnalysis {
 
 /// Analyze `root`: per-entry sizes and the largest files in the tree.
 pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
-    // Top-level entries first — they define the report rows.
-    let mut top_level: Vec<(String, PathBuf, bool)> = Vec::new();
+    // Top-level entries first — they define the report rows. The name
+    // stays an OsString so lossy conversions cannot merge two distinct
+    // entries into one report row.
+    let mut top_level: Vec<(std::ffi::OsString, PathBuf, bool)> = Vec::new();
     for entry in fs::read_dir(root)? {
         let entry = match entry {
             Ok(e) => e,
@@ -57,15 +59,11 @@ pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
         };
         let path = entry.path();
         let is_dir = fs::metadata(&path).map(|m| m.is_dir()).unwrap_or(false);
-        top_level.push((
-            entry.file_name().to_string_lossy().to_string(),
-            path,
-            is_dir,
-        ));
+        top_level.push((entry.file_name().to_os_string(), path, is_dir));
     }
 
     // Single walk over the whole tree.
-    let mut sizes: HashMap<String, (u64, u64)> = HashMap::new(); // name -> (size, files)
+    let mut sizes: HashMap<std::ffi::OsString, (u64, u64)> = HashMap::new(); // name -> (size, files)
     let mut total_files: u64 = 0;
     let mut total_dirs: u64 = 0;
     let mut total_size: u64 = 0;
@@ -100,17 +98,17 @@ pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
         };
 
         total_files += 1;
-        total_size += size;
+        total_size = total_size.saturating_add(size);
 
         // Attribute to the top-level ancestor.
         let relative = entry.path().strip_prefix(root).unwrap_or(entry.path());
         let owner = relative
             .components()
             .next()
-            .map(|c| c.as_os_str().to_string_lossy().to_string())
+            .map(|c| c.as_os_str().to_os_string())
             .unwrap_or_default();
         let bucket = sizes.entry(owner).or_insert((0, 0));
-        bucket.0 += size;
+        bucket.0 = bucket.0.saturating_add(size);
         bucket.1 += 1;
 
         // Keep the top-N largest files (min-heap pattern).
@@ -128,7 +126,7 @@ pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
         .map(|(name, path, is_dir)| {
             let (size, files) = sizes.get(&name).copied().unwrap_or((0, 0));
             EntryStat {
-                name,
+                name: name.to_string_lossy().to_string(),
                 path,
                 is_dir,
                 size,
@@ -210,5 +208,23 @@ mod tests {
         assert_eq!(analysis.total_size, 0);
         assert!(analysis.entries.is_empty());
         assert!(analysis.largest.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn non_utf8_names_are_not_merged() {
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        // Two distinct non-UTF-8 names whose lossy forms are identical:
+        // they must stay two report rows, not merge into one bucket.
+        std::fs::write(dir.path().join(OsStr::from_bytes(b"\xff\xfe-one")), b"xx").expect("write");
+        std::fs::write(dir.path().join(OsStr::from_bytes(b"\xff\xfe-two")), b"yy").expect("write");
+
+        let analysis = analyze_folder(dir.path()).expect("analyze");
+        assert_eq!(analysis.entries.len(), 2, "lossy names must not merge");
+        assert_eq!(analysis.total_files, 2);
+        assert_eq!(analysis.total_size, 4);
     }
 }

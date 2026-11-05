@@ -371,14 +371,20 @@ impl App {
             .join("joinery.db");
         let db = database::open(&db_path).ok();
 
+        // Settle journals left pending by a crash between the intent
+        // and the confirmation — bookkeeping only, no file operations.
+        if let Some(conn) = &db {
+            let _ = undo::recover_pending(conn);
+        }
+
         let mut dark = false;
         let mut lang = Lang::En;
         if let Some(conn) = &db {
-            // Light is the default; a saved "dark" must survive a restart.
-            if let Some(v) = database::get_setting(conn, "theme") {
-                dark = v == "dark";
-            }
-            if let Some(v) = database::get_setting(conn, "lang") {
+            // Settings are cosmetic — fall back to the defaults when
+            // the storage errors out.
+            let theme = database::get_setting(conn, "theme").unwrap_or(None);
+            dark = theme.as_deref() == Some("dark");
+            if let Some(v) = database::get_setting(conn, "lang").unwrap_or(None) {
                 lang = Lang::from_str(&v);
             }
         }
@@ -570,6 +576,33 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                 return Task::none();
             };
             let allow = app.ren.allow_overwrite;
+
+            // Durable intent BEFORE any file is touched: if the process
+            // dies mid-apply, startup recovery settles the journal. A
+            // journal write failure refuses the apply — files are never
+            // renamed without an undo path.
+            let records: Vec<renamer::RenameRecord> = items
+                .iter()
+                .filter(|i| i.status == renamer::RenameStatus::Ready)
+                .map(|i| renamer::RenameRecord {
+                    from: i.from.clone(),
+                    to: i.to.clone(),
+                })
+                .collect();
+            match app.db.as_mut() {
+                Some(conn) => match undo::save_intent(conn, "renamer", &records) {
+                    Ok(id) => app.ren.journal = Some(id),
+                    Err(err) => {
+                        app.ren.error = Some(format!("cannot write the undo journal: {err}"));
+                        return Task::none();
+                    }
+                },
+                None => {
+                    app.ren.error = Some("undo journal unavailable (no database)".to_string());
+                    return Task::none();
+                }
+            }
+
             app.ren.busy = true;
             Task::perform(
                 tokio::task::spawn_blocking(move || {
@@ -582,11 +615,13 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.ren.busy = false;
             match res {
                 Ok(outcome) => {
-                    if !outcome.applied.is_empty() {
-                        if let Some(conn) = app.db.as_mut() {
-                            if let Ok(id) = undo::save_journal(conn, "renamer", &outcome.applied) {
-                                app.ren.journal = Some(id);
-                            }
+                    if let (Some(conn), Some(id)) = (app.db.as_mut(), app.ren.journal) {
+                        if outcome.applied.is_empty() {
+                            // Nothing was touched — drop the intent.
+                            let _ = undo::delete_journal(conn, id);
+                            app.ren.journal = None;
+                        } else {
+                            let _ = undo::mark_committed(conn, id);
                         }
                     }
                     app.ren.outcome = Some((outcome.applied.len(), outcome.skipped.len()));
@@ -602,7 +637,17 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             let Some(id) = app.ren.journal else {
                 return Task::none();
             };
-            let Some(records) = app.db.as_ref().and_then(|c| undo::load_records(c, id)) else {
+            let Some(conn) = app.db.as_ref() else {
+                return Task::none();
+            };
+            let records = match undo::load_records(conn, id) {
+                Ok(records) => records,
+                Err(err) => {
+                    app.ren.error = Some(format!("undo journal read failed: {err}"));
+                    return Task::none();
+                }
+            };
+            let Some(records) = records else {
                 app.ren.journal = None;
                 app.ren.note = Some("journal entry not found".to_string());
                 return Task::none();
@@ -621,7 +666,15 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         }
         Msg::RenUndoReady { total, res, .. } => {
             app.ren.busy = false;
-            app.ren.journal = None;
+            if let Some(id) = app.ren.journal.take() {
+                // A fully undone journal is closed; a partial one keeps
+                // its records for a future attempt.
+                if matches!(&res, Ok(undone) if *undone == total) {
+                    if let Some(conn) = app.db.as_mut() {
+                        let _ = undo::mark_undone(conn, id);
+                    }
+                }
+            }
             match res {
                 Ok(undone) => {
                     let template = crate::i18n::tr(app.lang, "renamer.undoDone");
@@ -681,7 +734,7 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             let Some(result) = &app.dup.result else {
                 return Task::none();
             };
-            let paths: Vec<PathBuf> = result
+            let targets: Vec<(PathBuf, u64)> = result
                 .groups
                 .iter()
                 .flat_map(|g| g.files.iter())
@@ -692,12 +745,12 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                         .copied()
                         .unwrap_or(false)
                 })
-                .map(|f| f.path.clone())
+                .map(|f| (f.path.clone(), f.size))
                 .collect();
-            if paths.is_empty() {
+            if targets.is_empty() {
                 return Task::none();
             }
-            let count = paths.len();
+            let count = targets.len();
             let confirm_text = crate::i18n::fmt(
                 crate::i18n::tr(app.lang, "dup.confirm"),
                 &[("n", count.to_string())],
@@ -713,7 +766,7 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                         confirmed,
                         rfd::MessageDialogResult::Ok | rfd::MessageDialogResult::Yes
                     ) {
-                        Ok(undo::delete_to_trash(&paths))
+                        Ok(undo::delete_to_trash(&targets))
                     } else {
                         Err("cancelled".to_string())
                     }

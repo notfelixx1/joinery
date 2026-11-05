@@ -1,9 +1,17 @@
 //! Undo journal.
 //!
-//! Every destructive-but-reversible operation is recorded in the local
-//! SQLite database before the UI reports success. Undo replays the
-//! stored records backwards; entries already undone are skipped.
+//! Every destructive-but-reversible operation is journaled as a durable
+//! intent BEFORE the first file is touched. The row starts uncommitted;
+//! after the operation succeeded it is committed and becomes undoable.
+//! A crash in between leaves a pending row that [`recover_pending`]
+//! settles at the next startup, so applied renames never lose their
+//! undo path and never-applied intents never show up as undoable.
+//!
+//! Undo replays the stored records backwards; files that disappeared
+//! or were recreated meanwhile are skipped, never overwritten, and one
+//! failing record never stops the rest.
 
+use std::fs;
 use std::io;
 use std::path::PathBuf;
 
@@ -24,8 +32,10 @@ pub struct JournalEntry {
     pub undone: bool,
 }
 
-/// Persist a list of records; returns the journal id.
-pub fn save_journal(
+/// Persist the intent to apply `records` before any file is touched.
+/// The row starts uncommitted; [`mark_committed`] confirms it after
+/// the operation succeeded. Returns the journal id.
+pub fn save_intent(
     conn: &Connection,
     tool: &str,
     records: &[RenameRecord],
@@ -33,17 +43,35 @@ pub fn save_journal(
     let payload = serde_json::to_string(records).expect("serialize journal payload");
     let now = Utc::now().to_rfc3339();
     conn.execute(
-        "INSERT INTO undo_journal (created_at, tool, payload, undone) VALUES (?1, ?2, ?3, 0)",
+        "INSERT INTO undo_journal (created_at, tool, payload, undone, committed)
+         VALUES (?1, ?2, ?3, 0, 0)",
         params![now, tool, payload],
     )?;
     Ok(conn.last_insert_rowid())
 }
 
-/// List journal entries, newest first.
+/// Mark a journal as fully applied — undoable from now on.
+pub fn mark_committed(conn: &Connection, journal_id: i64) -> rusqlite::Result<usize> {
+    conn.execute(
+        "UPDATE undo_journal SET committed = 1 WHERE id = ?1",
+        params![journal_id],
+    )
+}
+
+/// Drop a pending intent whose apply touched nothing.
+pub fn delete_journal(conn: &Connection, journal_id: i64) -> rusqlite::Result<usize> {
+    conn.execute(
+        "DELETE FROM undo_journal WHERE id = ?1 AND committed = 0",
+        params![journal_id],
+    )
+}
+
+/// List committed journals, newest first.
 pub fn list_journals(conn: &Connection, limit: usize) -> rusqlite::Result<Vec<JournalEntry>> {
     let mut stmt = conn.prepare(
         "SELECT id, tool, created_at, payload, undone
          FROM undo_journal
+         WHERE committed = 1
          ORDER BY id DESC
          LIMIT ?1",
     )?;
@@ -63,18 +91,27 @@ pub fn list_journals(conn: &Connection, limit: usize) -> rusqlite::Result<Vec<Jo
     rows.collect()
 }
 
-/// Load the records of one journal and mark it as not-yet-undone.
-pub fn load_records(conn: &Connection, journal_id: i64) -> Option<Vec<RenameRecord>> {
+/// Load the records of one committed, not-yet-undone journal.
+///
+/// Storage errors surface as `Err` — a broken database must never look
+/// like "nothing to undo".
+pub fn load_records(
+    conn: &Connection,
+    journal_id: i64,
+) -> rusqlite::Result<Option<Vec<RenameRecord>>> {
     let payload: Option<String> = conn
         .query_row(
-            "SELECT payload FROM undo_journal WHERE id = ?1 AND undone = 0",
+            "SELECT payload FROM undo_journal WHERE id = ?1 AND undone = 0 AND committed = 1",
             params![journal_id],
             |row| row.get(0),
         )
-        .optional()
-        .ok()
-        .flatten();
-    payload.and_then(|p| serde_json::from_str(&p).ok())
+        .optional()?;
+    match payload {
+        Some(p) => serde_json::from_str(&p).map(Some).map_err(|err| {
+            rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(err))
+        }),
+        None => Ok(None),
+    }
 }
 
 /// Mark a journal entry as undone.
@@ -85,12 +122,44 @@ pub fn mark_undone(conn: &Connection, journal_id: i64) -> rusqlite::Result<usize
     )
 }
 
+/// Resolve uncommitted journals left by a crash between the intent and
+/// the confirmation. No file operations — bookkeeping only:
+/// - at least one rename applied → the journal becomes undoable;
+/// - nothing applied → the intent is dropped.
+pub fn recover_pending(conn: &Connection) -> rusqlite::Result<usize> {
+    let rows: Vec<(i64, String)> = {
+        let mut stmt = conn.prepare("SELECT id, payload FROM undo_journal WHERE committed = 0")?;
+        let mapped = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        mapped.collect::<Result<_, _>>()?
+    };
+    let mut resolved = 0;
+    for (id, payload) in rows {
+        let records: Vec<RenameRecord> = match serde_json::from_str(&payload) {
+            Ok(records) => records,
+            Err(_) => continue, // corrupted payload: leave for manual inspection
+        };
+        let applied = records.iter().any(|r| r.to.exists() && !r.from.exists());
+        if applied {
+            mark_committed(conn, id)?;
+        } else {
+            conn.execute("DELETE FROM undo_journal WHERE id = ?1", params![id])?;
+        }
+        resolved += 1;
+    }
+    Ok(resolved)
+}
+
 /// Replay records in reverse: move every `to` back to its `from`.
 /// Files that disappeared or were recreated meanwhile are skipped, not
 /// overwritten, and one failing record never stops the rest.
 pub fn undo_records(records: &[RenameRecord]) -> io::Result<usize> {
     let mut undone = 0;
     for record in records.iter().rev() {
+        // Undo only ever swaps names inside one folder; a record whose
+        // sides live in different folders is forged or corrupted.
+        if record.to.parent() != record.from.parent() {
+            continue;
+        }
         // No-replace move: a file recreated under the original name is
         // never clobbered, a vanished file just skips.
         match crate::safety::fs::move_noreplace(&record.to, &record.from) {
@@ -101,14 +170,26 @@ pub fn undo_records(records: &[RenameRecord]) -> io::Result<usize> {
     Ok(undone)
 }
 
-/// Delete paths into the system trash. Returns per-path results.
-pub fn delete_to_trash(paths: &[PathBuf]) -> Vec<(PathBuf, bool, Option<String>)> {
-    paths
+/// Delete files into the system trash, re-checking each one first: a
+/// file whose size no longer matches the scan is skipped, so a stale
+/// scan cannot trash different content. Returns per-path results.
+pub fn delete_to_trash(items: &[(PathBuf, u64)]) -> Vec<(PathBuf, bool, Option<String>)> {
+    items
         .iter()
-        .map(|path| match trash::delete(path) {
-            Ok(()) => (path.clone(), true, None),
-            Err(err) => (path.clone(), false, Some(err.to_string())),
-        })
+        .map(
+            |(path, expected_size)| match fs::metadata(path).map(|m| m.len()) {
+                Ok(size) if size == *expected_size => match trash::delete(path) {
+                    Ok(()) => (path.clone(), true, None),
+                    Err(err) => (path.clone(), false, Some(err.to_string())),
+                },
+                Ok(_) => (
+                    path.clone(),
+                    false,
+                    Some("file changed since the scan".to_string()),
+                ),
+                Err(err) => (path.clone(), false, Some(err.to_string())),
+            },
+        )
         .collect()
 }
 
@@ -135,9 +216,15 @@ mod tests {
                 to: PathBuf::from("/tmp/d.txt"),
             },
         ];
-        let id = save_journal(&conn, "renamer", &records).expect("save");
+        let id = save_intent(&conn, "renamer", &records).expect("save");
         assert!(id > 0);
 
+        // Pending journals are invisible to listing and undo.
+        let list = list_journals(&conn, 10).expect("list");
+        assert!(list.is_empty());
+        assert!(load_records(&conn, id).expect("load").is_none());
+
+        mark_committed(&conn, id).expect("commit");
         let list = list_journals(&conn, 10).expect("list");
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].op_count, 2);
@@ -145,15 +232,72 @@ mod tests {
         assert_eq!(list[0].tool, "renamer");
 
         let loaded = load_records(&conn, id).expect("load");
-        assert_eq!(loaded.len(), 2);
+        assert_eq!(loaded.as_ref().map(|r| r.len()), Some(2));
 
         mark_undone(&conn, id).expect("mark");
         let list = list_journals(&conn, 10).expect("list");
         assert!(list[0].undone);
         assert!(
-            load_records(&conn, id).is_none(),
+            load_records(&conn, id).expect("load").is_none(),
             "undone journals are not re-undoable"
         );
+    }
+
+    #[test]
+    fn recovery_resolves_pending_journals() {
+        let conn = memory_db();
+        let dir = tempfile::tempdir().expect("tempdir");
+        let a = dir.path().join("a.txt");
+        let b = dir.path().join("b.txt");
+        fs::write(&b, b"moved").expect("write");
+
+        // The rename already happened on disk: the intent becomes
+        // undoable instead of vanishing.
+        let applied_id = save_intent(
+            &conn,
+            "renamer",
+            &[RenameRecord {
+                from: a.clone(),
+                to: b.clone(),
+            }],
+        )
+        .expect("save");
+        // Nothing was ever touched: the stale intent is dropped.
+        save_intent(
+            &conn,
+            "renamer",
+            &[RenameRecord {
+                from: dir.path().join("x.txt"),
+                to: dir.path().join("y.txt"),
+            }],
+        )
+        .expect("save");
+
+        let resolved = recover_pending(&conn).expect("recover");
+        assert_eq!(resolved, 2);
+        let list = list_journals(&conn, 10).expect("list");
+        assert_eq!(list.len(), 1, "only the applied journal stays");
+        assert_eq!(list[0].id, applied_id);
+    }
+
+    #[test]
+    fn undo_records_skips_conflicts() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let a = dir.path().join("a.txt");
+        let b = dir.path().join("b.txt");
+        File::create(&a).expect("create a");
+        fs::rename(&a, &b).expect("rename");
+
+        // Someone recreates a.txt in the meantime → undo must skip.
+        File::create(&a).expect("recreate a");
+
+        let records = vec![RenameRecord {
+            from: a.clone(),
+            to: b.clone(),
+        }];
+        let undone = undo_records(&records).expect("undo");
+        assert_eq!(undone, 0);
+        assert!(a.exists() && b.exists());
     }
 
     #[test]
@@ -188,22 +332,36 @@ mod tests {
     }
 
     #[test]
-    fn undo_records_skips_conflicts() {
+    fn undo_rejects_cross_folder_records() {
         let dir = tempfile::tempdir().expect("tempdir");
-        let a = dir.path().join("a.txt");
-        let b = dir.path().join("b.txt");
-        File::create(&a).expect("create a");
-        fs::rename(&a, &b).expect("rename");
+        let other = tempfile::tempdir().expect("other");
+        let from = dir.path().join("b.txt");
+        let to = other.path().join("a.txt");
+        fs::write(&from, b"one").expect("write");
+        fs::write(&to, b"two").expect("write");
 
-        // Someone recreates a.txt in the meantime → undo must skip.
-        File::create(&a).expect("recreate a");
-
+        // A record moving a file across folders cannot come from the
+        // renamer — undo must not perform it.
         let records = vec![RenameRecord {
-            from: a.clone(),
-            to: b.clone(),
+            from: from.clone(),
+            to: to.clone(),
         }];
         let undone = undo_records(&records).expect("undo");
         assert_eq!(undone, 0);
-        assert!(a.exists() && b.exists());
+        assert!(from.exists() && to.exists());
+    }
+
+    #[test]
+    fn delete_to_trash_skips_changed_files() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let a = dir.path().join("a.txt");
+        fs::write(&a, b"current content").expect("write");
+
+        // The scan recorded a different size: the file must be skipped,
+        // not trashed.
+        let results = delete_to_trash(&[(a.clone(), 999)]);
+        assert_eq!(results.len(), 1);
+        assert!(!results[0].1, "stale entries must not be trashed");
+        assert!(a.exists());
     }
 }

@@ -114,8 +114,8 @@ pub fn find_duplicates(
         .filter(|(_, files)| files.len() > 1)
         .collect();
     candidates.sort_by(|a, b| {
-        let wasted_a = a.0 * (a.1.len() as u64 - 1);
-        let wasted_b = b.0 * (b.1.len() as u64 - 1);
+        let wasted_a = a.0.saturating_mul(a.1.len() as u64 - 1);
+        let wasted_b = b.0.saturating_mul(b.1.len() as u64 - 1);
         wasted_b.cmp(&wasted_a).then_with(|| b.0.cmp(&a.0))
     });
 
@@ -151,15 +151,15 @@ pub fn find_duplicates(
     }
 
     groups.sort_by(|a, b| {
-        let wasted_a = a.size * (a.files.len() as u64 - 1);
-        let wasted_b = b.size * (b.files.len() as u64 - 1);
+        let wasted_a = a.size.saturating_mul(a.files.len() as u64 - 1);
+        let wasted_b = b.size.saturating_mul(b.files.len() as u64 - 1);
         wasted_b.cmp(&wasted_a)
     });
 
     let wasted_bytes = groups
         .iter()
-        .map(|g| g.size * (g.files.len() as u64 - 1))
-        .sum();
+        .map(|g| g.size.saturating_mul(g.files.len() as u64 - 1))
+        .fold(0u64, u64::saturating_add);
 
     Ok(ScanResult {
         stats: ScanStats {

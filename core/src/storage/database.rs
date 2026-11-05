@@ -31,7 +31,20 @@ pub fn open(path: &Path) -> Result<Connection, Box<dyn std::error::Error>> {
     let conn = Connection::open(path)?;
     conn.execute_batch(SCHEMA)?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
+    migrate(&conn)?;
     Ok(conn)
+}
+
+/// In-place migrations. Each one is idempotent and ignores its own
+/// "already exists" error.
+fn migrate(conn: &Connection) -> rusqlite::Result<()> {
+    // Databases created before the durable journal miss the committed
+    // column; every pre-existing row counts as fully applied.
+    let _ = conn.execute(
+        "ALTER TABLE undo_journal ADD COLUMN committed INTEGER NOT NULL DEFAULT 1",
+        [],
+    );
+    Ok(())
 }
 
 /// In-memory database, used by tests.
@@ -39,18 +52,20 @@ pub fn open(path: &Path) -> Result<Connection, Box<dyn std::error::Error>> {
 pub fn open_in_memory() -> rusqlite::Result<Connection> {
     let conn = Connection::open_in_memory()?;
     conn.execute_batch(SCHEMA)?;
+    migrate(&conn)?;
     Ok(conn)
 }
 
-pub fn get_setting(conn: &Connection, key: &str) -> Option<String> {
+/// Read one setting. Storage errors surface as `Err` — a broken
+/// database must not silently look like "no setting". Callers choose
+/// their own fallback for the error case.
+pub fn get_setting(conn: &Connection, key: &str) -> rusqlite::Result<Option<String>> {
     conn.query_row(
         "SELECT value FROM settings WHERE key = ?1",
         params![key],
         |row| row.get(0),
     )
     .optional()
-    .ok()
-    .flatten()
 }
 
 pub fn set_setting(conn: &Connection, key: &str, value: &str) -> rusqlite::Result<usize> {
@@ -68,11 +83,17 @@ mod tests {
     #[test]
     fn settings_roundtrip() {
         let conn = open_in_memory().expect("db");
-        assert_eq!(get_setting(&conn, "theme"), None);
+        assert_eq!(get_setting(&conn, "theme").expect("get"), None);
         set_setting(&conn, "theme", "dark").expect("set");
-        assert_eq!(get_setting(&conn, "theme"), Some("dark".to_string()));
+        assert_eq!(
+            get_setting(&conn, "theme").expect("get"),
+            Some("dark".to_string())
+        );
         set_setting(&conn, "theme", "light").expect("upsert");
-        assert_eq!(get_setting(&conn, "theme"), Some("light".to_string()));
+        assert_eq!(
+            get_setting(&conn, "theme").expect("get"),
+            Some("light".to_string())
+        );
     }
 
     #[test]
@@ -82,7 +103,10 @@ mod tests {
         let conn = open(&db_path).expect("open");
         // Schema is applied — inserts must succeed.
         set_setting(&conn, "language", "ru").expect("set");
-        assert_eq!(get_setting(&conn, "language"), Some("ru".to_string()));
+        assert_eq!(
+            get_setting(&conn, "language").expect("get"),
+            Some("ru".to_string())
+        );
         assert!(db_path.exists());
     }
 }

@@ -1899,7 +1899,6 @@ dependencies = [
  "sha2",
  "similar",
  "tempfile",
- "tokio",
  "trash",
  "walkdir",
  "windows-sys 0.59.0",

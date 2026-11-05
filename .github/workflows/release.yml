@@ -41,9 +41,22 @@ jobs:
         if: runner.os != 'Windows'
         run: tar czf joinery-${{ runner.os }}.tar.gz -C target/release joinery
 
+      - name: Checksums (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          (Get-FileHash joinery-*.zip -Algorithm SHA256 | ForEach-Object {
+            "$($_.Hash.ToLower())  $([IO.Path]::GetFileName($_.Path))"
+          }) | Set-Content SHA256SUMS-${{ runner.os }}.txt
+
+      - name: Checksums (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: sha256sum joinery-*.tar.gz > SHA256SUMS-${{ runner.os }}.txt
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
             joinery-*.zip
             joinery-*.tar.gz
+            SHA256SUMS-*.txt

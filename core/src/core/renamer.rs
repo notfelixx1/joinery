@@ -269,6 +269,17 @@ pub fn apply_plan(
                 .push(skip("path escapes the selected folder"));
             continue;
         }
+        // The plan type is public and serializable: re-derive the target
+        // from its own fields, so a forged or corrupted item cannot
+        // reach the file system.
+        if check_new_filename(&item.to_name).is_err()
+            || item.to != item.from.with_file_name(&item.to_name)
+        {
+            outcome
+                .skipped
+                .push(skip("plan item does not match its own names"));
+            continue;
+        }
         if !item.from.exists() {
             outcome.skipped.push(skip("source file no longer exists"));
             continue;
@@ -481,6 +492,40 @@ mod tests {
             src.exists() && victim.exists(),
             "neither file may be touched"
         );
+    }
+
+    #[test]
+    fn apply_rejects_forged_plan_items() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = touch(dir.path(), "a.txt");
+
+        // Forged: `to` does not match `from` + `to_name`, so the item is
+        // not something plan_rename could have produced.
+        let forged = RenamePlanItem {
+            from: src.clone(),
+            to: dir.path().join("sub").join("moved.txt"),
+            from_name: "a.txt".into(),
+            to_name: "moved.txt".into(),
+            status: RenameStatus::Ready,
+            reason: None,
+        };
+        let outcome = apply_plan(dir.path(), &[forged], false).expect("apply");
+        assert_eq!(outcome.applied.len(), 0);
+        assert_eq!(outcome.skipped.len(), 1);
+        assert!(src.exists(), "the source must stay untouched");
+
+        // Forged: an invalid file name.
+        let bad_name = RenamePlanItem {
+            from: src.clone(),
+            to: dir.path().join("bad<name"),
+            from_name: "a.txt".into(),
+            to_name: "bad<name".into(),
+            status: RenameStatus::Ready,
+            reason: None,
+        };
+        let outcome = apply_plan(dir.path(), &[bad_name], false).expect("apply");
+        assert_eq!(outcome.applied.len(), 0);
+        assert!(src.exists());
     }
 
     #[test]
