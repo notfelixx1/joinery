@@ -1,0 +1,18 @@
+[package]
+name = "joinery"
+version = "0.1.0"
+description = "Joinery Tools — native iced frontend"
+edition = "2021"
+
+[[bin]]
+name = "joinery"
+path = "src/main.rs"
+
+[dependencies]
+joinery-tools = { path = "../core" }
+
+iced = { version = "0.13", default-features = false, features = ["tiny-skia", "tokio", "svg"] }
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
+rfd = "0.15"
+dirs = "5"
+rusqlite = "0.32"

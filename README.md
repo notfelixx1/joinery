@@ -1,0 +1,137 @@
+# Joinery Tools
+
+> One app. Everyday tools. No nonsense.
+> Одна программа. Повседневные инструменты. Без лишнего.
+
+Joinery Tools is a local-first desktop toolbox for everyday work with files,
+text and your system. Everything runs on your device — no internet, no
+accounts, no ads, no telemetry.
+
+[Русская версия ниже](#joinery-tools-по-русски)
+
+## Why Joinery
+
+- **Local-first.** Every operation happens on your device. Joinery has no
+  network features at all.
+- **Lightweight.** Built with Rust and [iced](https://iced.rs/) on the
+  tiny-skia renderer. A single process, small binary, fast start and low
+  memory use — useful even on weak machines.
+- **Safe by design.** Destructive operations require a preview and an
+  explicit confirmation. Renames are undoable, deletions go to the system
+  trash.
+- **Free & open source.** No subscriptions, no locked features, no ads.
+  Voluntary donations keep the project alive.
+
+## Tools in 0.1
+
+| Tool | What it does |
+| --- | --- |
+| **Batch Renamer** | Rename hundreds of files with find/replace, prefix/suffix, numbering patterns (`photo_{n:3}`). Full preview, collision protection, one-click undo. |
+| **Duplicate Finder** | Find duplicate files by content (size → partial hash → full hash). Nothing is deleted without confirmation; files go to the trash. |
+| **Folder Analyzer** | See what is eating your disk space — per-folder sizes, largest files. |
+| **Checksum** | SHA-256, SHA-1 and MD5 hashes, streamed in 64 KiB chunks; verify against an expected hash. |
+| **JSON / YAML Validator** | Validate, pretty-print and minify with exact error positions. |
+| **Text Diff** | Line-by-line comparison of two texts or config files. |
+
+Also included: dark & light themes, English & Russian UI, SQLite-backed
+settings and undo journal.
+
+## Building from source
+
+Requirements: [Rust](https://rustup.rs) 1.77+ and the usual platform build
+prerequisites for `iced` / `tiny-skia`.
+
+```bash
+cargo build --release -p joinery
+```
+
+The binary will be at `target/release/joinery.exe` (Windows) or
+`target/release/joinery` (Linux/macOS).
+
+Run the test suite:
+
+```bash
+cargo test
+```
+
+## Project layout
+
+```
+core/               Rust core library (joinery-tools)
+├── src/core/       renamer, duplicates, analyzer, checksum, text_diff, validators
+├── src/safety/     path checks, preview, undo journal
+└── src/storage/    SQLite (settings + undo journal)
+native-ui/          iced frontend
+├── src/app.rs      state, messages, update loop
+└── src/views/      tool views
+```
+
+## Roadmap
+
+See [docs/roadmap.md](docs/roadmap.md). Next up (0.2): System Tools —
+process viewer, network info, battery status.
+
+## Support Joinery
+
+Joinery is free. If it saves you time, a small donation helps fix bugs, test
+on more platforms and keep the software independent:
+
+- GitHub Sponsors
+- Ko-fi
+- Buy Me a Coffee
+
+No subscriptions. No locked features. No pressure.
+
+## License
+
+Dual-licensed under [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE) —
+pick whichever suits your project.
+
+---
+
+# Joinery Tools (по-русски)
+
+Локальный набор инструментов для повседневной работы с файлами, текстом и
+системой. Все операции выполняются на устройстве: без интернета, аккаунтов,
+рекламы и телеметрии.
+
+**Философия:** программа должна быть полезной даже на слабых компьютерах —
+никаких облачных API и обязательного ИИ. Одна программа вместо десяти мелких
+утилит.
+
+**Инструменты 0.1:** массовое переименование файлов (с предпросмотром и
+отменой), поиск дубликатов (удаление только в корзину и после
+подтверждения), анализ занятого места, контрольные суммы SHA-256/SHA-1/MD5,
+валидатор JSON/YAML, сравнение текстов.
+
+**Безопасность — преимущество продукта:** опасные операции никогда не
+выполняются сразу. Сначала предпросмотр, затем подтверждение; журнал
+изменений позволяет отменить переименование; удаление — в системную
+корзину.
+
+**Монетизация:** весь функционал бесплатен. Разработка поддерживается
+dобровольными донатами (GitHub Sponsors / Ko-fi / Buy Me a Coffee).
+
+## Сборка из исходников
+
+Требования: [Rust](https://rustup.rs) 1.77+.
+
+```bash
+cargo build --release -p joinery
+```
+
+Исполняемый файл появится в `target/release/joinery` (или
+`target/release/joinery.exe` на Windows).
+
+## План разработки
+
+| Этап | Статус |
+| --- | --- |
+| 1. Foundation — проект, Rust, iced, интерфейс | ✅ готово |
+| 2. Core Tools — Renamer, Checksum, Text Diff | ✅ готово |
+| 3. File Tools — Duplicate Finder, Folder Analyzer | ✅ готово |
+| 4. Safety — Preview, Undo, защита файлов | ✅ готово |
+| 5. Polish — настройки, документация, тесты | ✅ готово |
+| 6. Release — инсталляторы, GitHub Releases | 🚀 CI готов, релиз после тестирования |
+
+Подробности: [docs/roadmap.md](docs/roadmap.md).

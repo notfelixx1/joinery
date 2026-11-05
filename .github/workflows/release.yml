@@ -1,0 +1,73 @@
+name: Release
+
+# Builds installers for all three platforms and attaches them to a
+# GitHub Release. Trigger: push a tag like v0.1.0.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: ubuntu-22.04
+            args: "--target x86_64-unknown-linux-gnu"
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libsqlite3-dev
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Regenerate icon set from app-icon.png
+        run: npm run tauri icon src-tauri/icons/app-icon.png
+
+      - name: Run core tests
+        run: cargo test --color never
+        working-directory: src-tauri
+
+      - name: Build and upload release assets
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Joinery Tools ${{ github.ref_name }}"
+          releaseBody: |
+            Joinery Tools — one app, everyday tools, no nonsense.
+
+            All operations run locally: no internet, no accounts, no telemetry.
+            See CHANGELOG.md for what is new.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
