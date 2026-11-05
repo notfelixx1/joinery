@@ -210,7 +210,10 @@ mod tests {
         assert!(analysis.largest.is_empty());
     }
 
-    #[cfg(unix)]
+    // Only Linux: APFS (macOS) rejects non-UTF-8 names outright
+    // (EILSEQ), so the lossy-merge bug cannot exist there; ext4 is
+    // byte-transparent and can.
+    #[cfg(target_os = "linux")]
     #[test]
     fn non_utf8_names_are_not_merged() {
         use std::ffi::OsStr;
