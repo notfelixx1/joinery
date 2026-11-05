@@ -56,6 +56,12 @@ jobs:
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
+          name: "Joinery Tools ${{ github.ref_name }}"
+          body: |
+            Joinery Tools — one app. Everyday tools. No nonsense.
+
+            All operations run locally: no internet, no accounts, no telemetry.
+            See CHANGELOG.md for what is new.
           files: |
             joinery-*.zip
             joinery-*.tar.gz
