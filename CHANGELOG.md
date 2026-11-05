@@ -31,6 +31,8 @@ First public milestone: six quality tools instead of twenty half-made ones.
 
 ### Fixed
 
+- The Windows release build no longer opens a console window next to
+  the app; debug builds keep it for the logs.
 - Dark theme survives a restart — the saved theme setting is honored on
   startup.
 - The folder-safety check resolves symlinked roots correctly (macOS

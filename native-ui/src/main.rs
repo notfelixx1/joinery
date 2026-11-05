@@ -1,3 +1,7 @@
+// Release builds are GUI programs: no console window next to the app.
+// Debug builds keep the console so local runs still show the logs.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod app;
 mod format;
 mod i18n;
