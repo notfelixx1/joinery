@@ -3,6 +3,7 @@
 //! Joinery's promise: the UI never performs a dangerous operation — the
 //! Rust core validates every request before touching the file system.
 
+use std::io;
 use std::path::{Component, Path, PathBuf};
 
 use crate::core::renamer::RenamePlanItem;
@@ -105,6 +106,46 @@ fn starts_with_componentwise(path: &Path, root: &Path) -> bool {
     true
 }
 
+/// True where the platform's standard file systems treat names that
+/// differ only in letter case as one and the same name (Windows, macOS).
+///
+/// There a rename `holiday.jpg` → `HOLIDAY.JPG` replaces nothing: the
+/// target *is* the source. On case-sensitive systems the same pair is
+/// two different names and stays an ordinary rename.
+pub fn names_case_insensitive() -> bool {
+    cfg!(any(windows, target_os = "macos"))
+}
+
+/// `a` and `b` are different names that become equal once lowercased
+/// (`holiday.jpg` → `HOLIDAY.JPG`).
+pub fn differs_only_in_case(a: &str, b: &str) -> bool {
+    a != b && a.to_lowercase() == b.to_lowercase()
+}
+
+/// A root resolved once; membership checks reuse the resolution.
+///
+/// `apply_plan` verifies every planned path against the selected root.
+/// Resolving the root per item costs a canonicalization syscall each
+/// time; binding it once keeps the exact same check cheap.
+pub struct RootBound {
+    root: PathBuf,
+}
+
+impl RootBound {
+    /// Resolve `root` now. A root that cannot be resolved is a hard
+    /// error — the caller must stop before touching the file system.
+    pub fn bind(root: &Path) -> io::Result<RootBound> {
+        Ok(RootBound {
+            root: dunce::canonicalize(root)?,
+        })
+    }
+
+    /// True when `path` is (or resolves to) something inside the root.
+    pub fn is_within(&self, path: &Path) -> bool {
+        starts_with_componentwise(&canonicalize_best_effort(path), &self.root)
+    }
+}
+
 /// Validate a prospective file name (name + extension, no directories).
 pub fn check_new_filename(name: &str) -> Result<(), String> {
     if name.is_empty() {
@@ -193,6 +234,25 @@ mod tests {
         // Several missing levels still land in the root's name space.
         let deep_ghost = root.path().join("no").join("such").join("g.txt");
         assert!(is_within(&deep_ghost, root.path()));
+    }
+
+    #[test]
+    fn root_bound_matches_is_within_and_refuses_a_lost_root() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let bound = RootBound::bind(root.path()).expect("bind");
+        let inside = root.path().join("a.txt");
+        std::fs::File::create(&inside).expect("create");
+
+        assert!(bound.is_within(&inside));
+        // A not-yet-existing target inside the root is still within.
+        assert!(bound.is_within(&root.path().join("ghost")));
+
+        let other = tempfile::tempdir().expect("tempdir");
+        assert!(!bound.is_within(other.path()));
+        assert!(!bound.is_within(&other.path().join("ghost")));
+
+        // A root that vanished is a hard stop, as for direct is_within.
+        assert!(RootBound::bind(&root.path().join("gone")).is_err());
     }
 
     #[test]

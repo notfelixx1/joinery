@@ -6,9 +6,19 @@
 //! plan and the apply step could be lost. Every move in Joinery goes
 //! through here instead: the destination is never replaced, not even
 //! when it appears in that window.
+//!
+//! One exception by construction: a rename whose target name differs
+//! from the source only in letter case on a case-insensitive file
+//! system (Windows, macOS). There the destination denominates the
+//! source itself, so [`std::fs::rename`] cannot replace anything but
+//! the file being renamed — and the no-replace primitives above reject
+//! exactly that, which would make case-only renames impossible.
 
+use std::fs;
 use std::io;
 use std::path::Path;
+
+use crate::safety::preview::names_case_insensitive;
 
 /// Move `from` to `to` without replacing an existing destination.
 ///
@@ -16,6 +26,12 @@ use std::path::Path;
 /// target exists (or appeared in the meantime) — in that case the
 /// source is left untouched.
 pub fn move_noreplace(from: &Path, to: &Path) -> io::Result<bool> {
+    if is_case_only_move(from, to) {
+        // The case-insensitive target name denominates the source
+        // itself: a plain rename changes only the letter case and
+        // cannot replace anything but the file being renamed.
+        return fs::rename(from, to).map(|_| true);
+    }
     #[cfg(windows)]
     {
         movefileex_noreplace(from, to)
@@ -32,6 +48,21 @@ pub fn move_noreplace(from: &Path, to: &Path) -> io::Result<bool> {
     {
         fallback_recheck(from, to)
     }
+}
+
+/// Same folder, names differing only in letter case — and the platform
+/// treats such names as one and the same name. There the destination
+/// of the move resolves to the source itself.
+pub(crate) fn is_case_only_move(from: &Path, to: &Path) -> bool {
+    if !names_case_insensitive() {
+        return false;
+    }
+    let (Some(from_name), Some(to_name)) = (from.file_name(), to.file_name()) else {
+        return false;
+    };
+    from.parent() == to.parent()
+        && from_name != to_name
+        && from_name.to_string_lossy().to_lowercase() == to_name.to_string_lossy().to_lowercase()
 }
 
 #[cfg(windows)]
@@ -174,5 +205,42 @@ mod tests {
         let src = dir.path().join("missing.txt");
         let dst = dir.path().join("b.txt");
         assert!(move_noreplace(&src, &dst).is_err());
+    }
+
+    #[test]
+    fn case_only_move_works_in_both_directions() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = dir.path().join("case.txt");
+        std::fs::write(&src, b"hello").expect("write");
+        let target = dir.path().join("CASE.txt");
+
+        let real_entries = |dir: &Path| -> Vec<String> {
+            let mut names: Vec<String> = std::fs::read_dir(dir)
+                .expect("read dir")
+                .map(|e| {
+                    e.expect("dir entry")
+                        .file_name()
+                        .to_string_lossy()
+                        .to_string()
+                })
+                .collect();
+            names.sort();
+            names
+        };
+
+        assert!(move_noreplace(&src, &target).expect("case move"));
+        assert_eq!(
+            real_entries(dir.path()),
+            vec!["CASE.txt".to_string()],
+            "the directory entry must reflect the new case"
+        );
+
+        // The reverse move (what Undo does) works the same way.
+        assert!(move_noreplace(&target, &src).expect("reverse move"));
+        assert_eq!(
+            real_entries(dir.path()),
+            vec!["case.txt".to_string()],
+            "the file is back under its original case"
+        );
     }
 }

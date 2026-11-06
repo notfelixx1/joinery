@@ -3,7 +3,8 @@ use iced::{font, Alignment, Element, Length};
 
 use joinery_tools::core::checksum;
 
-use crate::app::{App, ChecksumItem, Msg};
+use crate::app::checksum::{ChecksumItem, Msg as CksMsg};
+use crate::app::{App, Msg};
 use crate::i18n::tr;
 use crate::palette;
 use crate::views::{btn, btn_primary, card, empty_state, error_box, muted, text_color};
@@ -58,7 +59,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             crate::icons::shield_check,
             tr(lang, "tool.checksum"),
             tr(lang, "empty.checksum.hint"),
-            Some((tr(lang, "common.chooseFiles"), Msg::CksChooseFiles)),
+            Some((
+                tr(lang, "common.chooseFiles"),
+                Msg::Checksum(CksMsg::ChooseFiles),
+            )),
         );
     }
 
@@ -85,7 +89,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     col = col.push(card(
         dark,
         row![
-            btn(dark, tr(lang, "common.chooseFiles"), Msg::CksChooseFiles),
+            btn(
+                dark,
+                tr(lang, "common.chooseFiles"),
+                Msg::Checksum(CksMsg::ChooseFiles)
+            ),
             text(names)
                 .size(12)
                 .font(font::Font::MONOSPACE)
@@ -98,7 +106,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             iced::widget::pick_list(
                 ALGS,
                 Some(<checksum::Algorithm as Into<Alg>>::into(c.algorithm)),
-                |value| Msg::CksAlgorithm(value.into()),
+                |value| Msg::Checksum(CksMsg::Algorithm(value.into())),
             )
             .text_size(13),
             btn_primary(
@@ -109,7 +117,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     tr(lang, "common.compute").to_string()
                 },
                 if !c.paths.is_empty() && !c.busy {
-                    Some(Msg::CksRun)
+                    Some(Msg::Checksum(CksMsg::Run))
                 } else {
                     None
                 },
@@ -141,7 +149,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     .size(11)
                     .style(muted(dark)),
                 text_input(tr(lang, "checksum.verify.hint"), &c.expected)
-                    .on_input(Msg::CksExpected)
+                    .on_input(|v| Msg::Checksum(CksMsg::Expected(v)))
                     .size(13)
                     .font(font::Font::MONOSPACE),
                 if !expected.is_empty() {
@@ -209,7 +217,7 @@ fn result_row(dark: bool, lang: crate::i18n::Lang, item: &ChecksumItem) -> Eleme
         crate::views::btn(
             dark,
             tr(lang, "common.copy"),
-            Msg::CksCopy(item.hash.clone().unwrap_or_default()),
+            Msg::Checksum(CksMsg::Copy(item.hash.clone().unwrap_or_default())),
         )
     } else {
         text("").size(13).into()

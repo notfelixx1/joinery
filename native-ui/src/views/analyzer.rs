@@ -1,6 +1,7 @@
 use iced::widget::{column, container, progress_bar, row, scrollable, text};
 use iced::{font, Alignment, Color, Element, Length};
 
+use crate::app::analyzer::Msg as AnaMsg;
 use crate::app::{App, Msg};
 use crate::format::{format_bytes, percent};
 use crate::i18n::tr;
@@ -19,14 +20,17 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             crate::icons::pie_chart,
             tr(lang, "tool.analyzer"),
             tr(lang, "empty.analyzer.hint"),
-            Some((tr(lang, "common.chooseFolder"), Msg::AnaChooseFolder)),
+            Some((
+                tr(lang, "common.chooseFolder"),
+                Msg::Analyzer(AnaMsg::ChooseFolder),
+            )),
         ));
         if !app.ana_recent.is_empty() {
             col = col.push(recent_block(
                 dark,
                 tr(lang, "empty.recent"),
                 &app.ana_recent,
-                |p| Msg::AnaFolder(Some(p)),
+                |p| Msg::Analyzer(AnaMsg::Folder(Some(p))),
             ));
         }
         return col.into();
@@ -43,7 +47,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     col = col.push(card(
         dark,
         row![
-            btn(dark, tr(lang, "common.chooseFolder"), Msg::AnaChooseFolder),
+            btn(
+                dark,
+                tr(lang, "common.chooseFolder"),
+                Msg::Analyzer(AnaMsg::ChooseFolder)
+            ),
             text(folder_text)
                 .size(12)
                 .font(font::Font::MONOSPACE)
@@ -57,7 +65,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 } else {
                     tr(lang, "common.analyze").to_string()
                 },
-                Msg::AnaRun,
+                Msg::Analyzer(AnaMsg::Run),
             ),
         ]
         .spacing(8)
@@ -88,9 +96,16 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         for entry in &analysis.entries {
             let bar_width = percent(entry.size, analysis.total_size);
             let is_largest = entry.size > 0 && entry.size == max_size;
+            // Label links so their uncounted content is not misread as
+            // an empty folder.
+            let name = if entry.is_link {
+                format!("{} ({})", entry.name, tr(lang, "analyzer.link"))
+            } else {
+                entry.name.clone()
+            };
             entries = entries.push(
                 row![
-                    text(&entry.name)
+                    text(name)
                         .size(12)
                         .font(font::Font::MONOSPACE)
                         .width(Length::Fixed(240.0))

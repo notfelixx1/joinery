@@ -3,6 +3,7 @@ use iced::{font, Alignment, Element, Length};
 
 use joinery_tools::core::renamer::RenameStatus;
 
+use crate::app::renamer::Msg as RenMsg;
 use crate::app::{App, Msg};
 use crate::i18n::{fmt, tr};
 use crate::palette;
@@ -24,14 +25,17 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             crate::icons::tag,
             tr(lang, "tool.renamer"),
             tr(lang, "empty.renamer.hint"),
-            Some((tr(lang, "common.chooseFolder"), Msg::RenChooseFolder)),
+            Some((
+                tr(lang, "common.chooseFolder"),
+                Msg::Renamer(RenMsg::ChooseFolder),
+            )),
         ));
         if !app.ren_recent.is_empty() {
             col = col.push(recent_block(
                 dark,
                 tr(lang, "empty.recent"),
                 &app.ren_recent,
-                |p| Msg::RenFolder(Some(p)),
+                |p| Msg::Renamer(RenMsg::Folder(Some(p))),
             ));
         }
         return col.into();
@@ -49,18 +53,22 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         field(
             dark,
             tr(lang, "renamer.find"),
-            text_input("photo", &r.find).on_input(Msg::RenFind).size(13),
+            text_input("photo", &r.find)
+                .on_input(|v| Msg::Renamer(RenMsg::Find(v)))
+                .size(13),
         ),
         field(
             dark,
             tr(lang, "renamer.prefix"),
-            text_input("", &r.prefix).on_input(Msg::RenPrefix).size(13),
+            text_input("", &r.prefix)
+                .on_input(|v| Msg::Renamer(RenMsg::Prefix(v)))
+                .size(13),
         ),
         field(
             dark,
             tr(lang, "renamer.newExt"),
             text_input("jpg", &r.new_ext)
-                .on_input(Msg::RenNewExt)
+                .on_input(|v| Msg::Renamer(RenMsg::NewExt(v)))
                 .size(13),
         ),
     ]
@@ -72,19 +80,21 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             dark,
             tr(lang, "renamer.replace"),
             text_input("vacation", &r.replace)
-                .on_input(Msg::RenReplace)
+                .on_input(|v| Msg::Renamer(RenMsg::Replace(v)))
                 .size(13),
         ),
         field(
             dark,
             tr(lang, "renamer.suffix"),
-            text_input("", &r.suffix).on_input(Msg::RenSuffix).size(13),
+            text_input("", &r.suffix)
+                .on_input(|v| Msg::Renamer(RenMsg::Suffix(v)))
+                .size(13),
         ),
         field(
             dark,
             tr(lang, "renamer.pattern"),
             text_input("photo_{n:3}", &r.pattern)
-                .on_input(Msg::RenPattern)
+                .on_input(|v| Msg::Renamer(RenMsg::Pattern(v)))
                 .size(13),
         ),
     ]
@@ -95,7 +105,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         dark,
         column![
             row![
-                btn(dark, tr(lang, "common.chooseFolder"), Msg::RenChooseFolder),
+                btn(
+                    dark,
+                    tr(lang, "common.chooseFolder"),
+                    Msg::Renamer(RenMsg::ChooseFolder)
+                ),
                 text(folder_text)
                     .size(12)
                     .font(font::Font::MONOSPACE)
@@ -110,7 +124,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         tr(lang, "common.preview").to_string()
                     },
                     if r.folder.is_some() && !r.busy {
-                        Some(Msg::RenPreview)
+                        Some(Msg::Renamer(RenMsg::Preview))
                     } else {
                         None
                     },
@@ -124,10 +138,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .style(muted(dark)),
             row![
                 checkbox(tr(lang, "renamer.subfolders"), r.include_subfolders)
-                    .on_toggle(Msg::RenSubfolders)
+                    .on_toggle(|v| Msg::Renamer(RenMsg::Subfolders(v)))
                     .text_size(13),
                 checkbox(tr(lang, "renamer.allowOverwrite"), r.allow_overwrite)
-                    .on_toggle(Msg::RenAllowOverwrite)
+                    .on_toggle(|v| Msg::Renamer(RenMsg::AllowOverwrite(v)))
                     .text_size(13),
             ]
             .spacing(20),
@@ -174,6 +188,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         for item in plan {
             let (status_key, color) = match item.status {
                 RenameStatus::Ready => ("renamer.status.ready", s.ok),
+                RenameStatus::CaseOnly => ("renamer.status.caseOnly", s.accent),
                 RenameStatus::NoChange => ("renamer.status.nochange", s.text_muted),
                 RenameStatus::TargetExists => ("renamer.status.targetExists", s.warn),
                 RenameStatus::BatchDuplicate => ("renamer.status.batchDuplicate", s.danger),
@@ -222,7 +237,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         dark,
                         &format!("{} ({})", tr(lang, "common.apply"), r.ready_count),
                         if !r.busy && r.ready_count > 0 && !r.has_conflicts {
-                            Some(Msg::RenApply)
+                            Some(Msg::Renamer(RenMsg::Apply))
                         } else {
                             None
                         },
@@ -264,7 +279,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     dark,
                     tr(lang, "common.undo"),
                     if r.journal.is_some() && !r.busy {
-                        Some(Msg::RenUndo)
+                        Some(Msg::Renamer(RenMsg::Undo))
                     } else {
                         None
                     },

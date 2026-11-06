@@ -12,14 +12,21 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::safety::fs::move_noreplace;
-use crate::safety::preview::{check_new_filename, detect_batch_collisions, is_within};
+use crate::safety::fs::{is_case_only_move, move_noreplace};
+use crate::safety::preview::{
+    check_new_filename, detect_batch_collisions, differs_only_in_case, names_case_insensitive,
+    RootBound,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RenameStatus {
     /// Safe to rename.
     Ready,
+    /// A rename that changes only the letter case (`holiday.jpg` →
+    /// `HOLIDAY.JPG`) on a case-insensitive file system: the target
+    /// resolves to the source itself, so nothing is replaced.
+    CaseOnly,
     /// New name equals the current one — nothing to do.
     NoChange,
     /// A file with the target name already exists on disk.
@@ -213,7 +220,13 @@ pub fn plan_rename(root: &Path, options: &RenameOptions) -> io::Result<Vec<Renam
             )
         } else {
             let target = path.with_file_name(&new_name);
-            if target.exists() {
+            if names_case_insensitive() && differs_only_in_case(&file_name, &new_name) {
+                // The case-insensitive file system resolves this target
+                // to the source itself. A `target.exists()` check here
+                // would always find the source — that is not a
+                // collision, it is the very file being renamed.
+                (target, RenameStatus::CaseOnly, None)
+            } else if target.exists() {
                 (
                     target,
                     RenameStatus::TargetExists,
@@ -241,29 +254,37 @@ pub fn plan_rename(root: &Path, options: &RenameOptions) -> io::Result<Vec<Renam
 /// Execute a previewed plan.
 ///
 /// Safety rules:
-/// - only items with status [`RenameStatus::Ready`] are executed;
-/// - every path must resolve inside `root` (canonical check);
+/// - only items with status [`RenameStatus::Ready`] or
+///   [`RenameStatus::CaseOnly`] are executed;
+/// - every path must resolve inside `root` (canonical check, root
+///   resolved once);
+/// - CaseOnly items are re-verified to really be case-only pairs —
+///   anything else is a forged item;
 /// - existing targets are never overwritten unless `allow_overwrite`.
 pub fn apply_plan(
     root: &Path,
     items: &[RenamePlanItem],
     allow_overwrite: bool,
 ) -> io::Result<ApplyOutcome> {
-    // Fails when the root vanished or is unreadable — a hard stop.
-    fs::canonicalize(root)?;
+    // Resolve the selected root once; a root that cannot be resolved
+    // is a hard stop — nothing gets touched.
+    let bound = RootBound::bind(root)?;
     let mut outcome = ApplyOutcome {
         applied: Vec::new(),
         skipped: Vec::new(),
     };
 
-    for item in items.iter().filter(|i| i.status == RenameStatus::Ready) {
+    for item in items
+        .iter()
+        .filter(|i| matches!(i.status, RenameStatus::Ready | RenameStatus::CaseOnly))
+    {
         let skip = |reason: &str| SkippedRename {
             from: item.from.clone(),
             to: item.to.clone(),
             reason: reason.to_string(),
         };
 
-        if !is_within(&item.from, root) || !is_within(&item.to, root) {
+        if !bound.is_within(&item.from) || !bound.is_within(&item.to) {
             outcome
                 .skipped
                 .push(skip("path escapes the selected folder"));
@@ -280,6 +301,15 @@ pub fn apply_plan(
                 .push(skip("plan item does not match its own names"));
             continue;
         }
+        // A claimed CaseOnly item is only trusted when the two paths
+        // really form a case-only pair — otherwise it is forged (its
+        // status alone must not unlock a plain rename).
+        if item.status == RenameStatus::CaseOnly && !is_case_only_move(&item.from, &item.to) {
+            outcome
+                .skipped
+                .push(skip("plan item is not a case-only rename"));
+            continue;
+        }
         if !item.from.exists() {
             outcome.skipped.push(skip("source file no longer exists"));
             continue;
@@ -287,7 +317,11 @@ pub fn apply_plan(
         // An explicit allow_overwrite decision means "replace what is
         // there". Everything else moves without ever replacing, so a
         // file that appeared after the preview cannot be lost.
-        let moved = if allow_overwrite && item.to.exists() {
+        // CaseOnly items never take the overwrite branch: their target
+        // is the source itself, there is nothing to overwrite and
+        // `move_noreplace` performs them as a bare case change.
+        let moved = if item.status != RenameStatus::CaseOnly && allow_overwrite && item.to.exists()
+        {
             if item.from == item.to {
                 outcome
                     .skipped
@@ -445,6 +479,84 @@ mod tests {
         assert_eq!(undone, 2);
         assert!(dir.path().join("photo_001.jpg").exists());
         assert!(!dir.path().join("vacation_001.jpg").exists());
+    }
+
+    #[test]
+    fn case_only_rename_applies_and_undoes() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        touch(dir.path(), "case.jpg");
+
+        let options = RenameOptions {
+            new_extension: "JPG".into(),
+            ..opts()
+        };
+        let plan = plan_rename(dir.path(), &options).expect("plan");
+        assert_eq!(plan.len(), 1);
+        // Case-insensitive platforms (Windows, macOS) plan a CaseOnly
+        // rename — the target is the source itself. Case-sensitive ones
+        // (Linux) plan an ordinary Ready rename.
+        let expected = if names_case_insensitive() {
+            RenameStatus::CaseOnly
+        } else {
+            RenameStatus::Ready
+        };
+        assert_eq!(plan[0].status, expected);
+
+        let outcome = apply_plan(dir.path(), &plan, false).expect("apply");
+        assert!(outcome.skipped.is_empty(), "no skips planned");
+        assert_eq!(outcome.applied.len(), 1);
+
+        let entries = |dir: &Path| -> Vec<String> {
+            let mut names: Vec<String> = std::fs::read_dir(dir)
+                .expect("read dir")
+                .map(|e| {
+                    e.expect("dir entry")
+                        .file_name()
+                        .to_string_lossy()
+                        .to_string()
+                })
+                .collect();
+            names.sort();
+            names
+        };
+        assert_eq!(entries(dir.path()), vec!["case.JPG".to_string()]);
+
+        let undone = crate::safety::undo::undo_records(&outcome.applied).expect("undo");
+        assert_eq!(undone, 1);
+        assert_eq!(entries(dir.path()), vec!["case.jpg".to_string()]);
+    }
+
+    #[test]
+    fn forged_case_only_item_is_skipped() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = touch(dir.path(), "a.txt");
+        let victim = touch(dir.path(), "B.txt");
+
+        // Claimed CaseOnly, but the two names differ beyond letter case:
+        // only what plan_rename could produce may apply.
+        let forged = RenamePlanItem {
+            from: src.clone(),
+            to: victim.clone(),
+            from_name: "a.txt".into(),
+            to_name: "B.txt".into(),
+            status: RenameStatus::CaseOnly,
+            reason: None,
+        };
+        let outcome = apply_plan(dir.path(), &[forged], false).expect("apply");
+        assert_eq!(outcome.applied.len(), 0);
+        assert_eq!(outcome.skipped.len(), 1);
+        assert!(
+            src.exists() && victim.exists(),
+            "a forged status must not unlock a plain rename"
+        );
+    }
+
+    #[test]
+    fn case_only_serializes_with_the_documented_key() {
+        assert_eq!(
+            serde_json::to_string(&RenameStatus::CaseOnly).expect("serialize"),
+            r#""caseOnly""#
+        );
     }
 
     #[test]

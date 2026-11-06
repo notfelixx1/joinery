@@ -21,3 +21,6 @@ dirs = "5"
 rusqlite = "0.32"
 chrono = "0.4"
 open = "5"
+
+[dev-dependencies]
+tempfile = "3"

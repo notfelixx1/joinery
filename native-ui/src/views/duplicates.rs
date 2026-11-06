@@ -1,6 +1,7 @@
 use iced::widget::{checkbox, column, row, scrollable, text, text_input};
 use iced::{font, Alignment, Element, Length};
 
+use crate::app::duplicates::Msg as DupMsg;
 use crate::app::{App, Msg};
 use crate::format::format_bytes;
 use crate::i18n::{fmt, tr};
@@ -18,14 +19,17 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             crate::icons::copy,
             tr(lang, "tool.duplicates"),
             tr(lang, "empty.duplicates.hint"),
-            Some((tr(lang, "common.chooseFolder"), Msg::DupChooseFolder)),
+            Some((
+                tr(lang, "common.chooseFolder"),
+                Msg::Duplicates(DupMsg::ChooseFolder),
+            )),
         ));
         if !app.dup_recent.is_empty() {
             col = col.push(recent_block(
                 dark,
                 tr(lang, "empty.recent"),
                 &app.dup_recent,
-                |p| Msg::DupFolder(Some(p)),
+                |p| Msg::Duplicates(DupMsg::Folder(Some(p))),
             ));
         }
         return col.into();
@@ -60,7 +64,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         dark,
         column![
             row![
-                btn(dark, tr(lang, "common.chooseFolder"), Msg::DupChooseFolder),
+                btn(
+                    dark,
+                    tr(lang, "common.chooseFolder"),
+                    Msg::Duplicates(DupMsg::ChooseFolder)
+                ),
                 text(folder_text)
                     .size(12)
                     .font(font::Font::MONOSPACE)
@@ -69,7 +77,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     .wrapping(iced::widget::text::Wrapping::Word),
                 text(tr(lang, "dup.minSize")).size(11).style(muted(dark)),
                 text_input("1", &d.min_size)
-                    .on_input(Msg::DupMinSize)
+                    .on_input(|v| Msg::Duplicates(DupMsg::MinSize(v)))
                     .size(13)
                     .width(Length::Fixed(90.0)),
                 btn_primary_scan(dark, lang, d.folder.is_some() && !d.scanning),
@@ -150,7 +158,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         format_bytes(selected_bytes)
                     ),
                     if !d.scanning && selected_count > 0 {
-                        Some(Msg::DupDelete)
+                        Some(Msg::Duplicates(DupMsg::Delete))
                     } else {
                         None
                     },
@@ -179,7 +187,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     files_col = files_col.push(
                         row![
                             checkbox("", checked)
-                                .on_toggle(move |v| Msg::DupToggle(path_for_cb.clone(), v))
+                                .on_toggle(move |v| {
+                                    Msg::Duplicates(DupMsg::Toggle(path_for_cb.clone(), v))
+                                })
                                 .size(14),
                             text(path.clone())
                                 .size(12)
@@ -231,6 +241,10 @@ fn btn_primary_scan(dark: bool, lang: crate::i18n::Lang, enabled: bool) -> Eleme
     crate::views::btn_primary(
         dark,
         &label,
-        if enabled { Some(Msg::DupScan) } else { None },
+        if enabled {
+            Some(Msg::Duplicates(DupMsg::Scan))
+        } else {
+            None
+        },
     )
 }

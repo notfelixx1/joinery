@@ -3,6 +3,7 @@ use iced::{font, Alignment, Element, Length};
 
 use joinery_tools::core::text_diff::DiffKind;
 
+use crate::app::diff::Msg as DiffMsg;
 use crate::app::{App, Msg};
 use crate::i18n::{fmt, tr};
 use crate::palette;
@@ -22,13 +23,17 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .size(12)
                 .style(muted(dark))
                 .width(Length::Fill),
-            btn(dark, tr(lang, "dev.loadFile"), Msg::DiffLoad(true)),
+            btn(
+                dark,
+                tr(lang, "dev.loadFile"),
+                Msg::Diff(DiffMsg::Load(true))
+            ),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
         text_editor(&d.old_text)
             .height(Length::Fixed(220.0))
-            .on_action(|a| Msg::DiffEdit(true, a))
+            .on_action(|a| Msg::Diff(DiffMsg::Edit(true, a)))
             .size(13),
     ]
     .spacing(4)
@@ -40,13 +45,17 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .size(12)
                 .style(muted(dark))
                 .width(Length::Fill),
-            btn(dark, tr(lang, "dev.loadFile"), Msg::DiffLoad(false)),
+            btn(
+                dark,
+                tr(lang, "dev.loadFile"),
+                Msg::Diff(DiffMsg::Load(false))
+            ),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
         text_editor(&d.new_text)
             .height(Length::Fixed(220.0))
-            .on_action(|a| Msg::DiffEdit(false, a))
+            .on_action(|a| Msg::Diff(DiffMsg::Edit(false, a)))
             .size(13),
     ]
     .spacing(4)
@@ -63,9 +72,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             } else {
                 tr(lang, "common.compare").to_string()
             },
-            if !d.busy { Some(Msg::DiffRun) } else { None },
+            if !d.busy {
+                Some(Msg::Diff(DiffMsg::Run))
+            } else {
+                None
+            },
         ),
-        btn(dark, tr(lang, "common.clear"), Msg::DiffClear),
+        btn(dark, tr(lang, "common.clear"), Msg::Diff(DiffMsg::Clear)),
         iced::widget::horizontal_space(),
     ]
     .spacing(8)

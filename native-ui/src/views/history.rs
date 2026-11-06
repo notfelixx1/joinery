@@ -3,6 +3,7 @@
 use iced::widget::{column, row, scrollable, text};
 use iced::{font, Alignment, Element, Length};
 
+use crate::app::history::Msg as HistMsg;
 use crate::app::{App, Msg};
 use crate::i18n::{fmt, tr};
 use crate::palette;
@@ -75,7 +76,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             btn_danger(
                 dark,
                 tr(lang, "common.undo"),
-                Some(Msg::UndoJournal(entry.id)),
+                Some(Msg::History(HistMsg::Journal(entry.id))),
             )
         };
         rows = rows.push(

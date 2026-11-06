@@ -31,3 +31,18 @@ jobs:
 
       - name: Tests
         run: cargo test --locked --color never
+
+  audit:
+    # Advisory database check on every push/PR: known CVEs in the
+    # dependency tree fail the build. Runs once, not per-OS.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Security audit
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

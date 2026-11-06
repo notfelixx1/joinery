@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use serde_yaml::Value as YamlValue;
+use serde_yaml_ng::Value as YamlValue;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -53,12 +53,12 @@ pub fn validate_json(text: &str) -> ValidationResult {
 
 /// Validate a YAML document and return its canonical form when valid.
 pub fn validate_yaml(text: &str) -> ValidationResult {
-    match serde_yaml::from_str::<YamlValue>(text) {
+    match serde_yaml_ng::from_str::<YamlValue>(text) {
         Ok(value) => ValidationResult {
             kind: DocKind::Yaml,
             valid: true,
             error: None,
-            formatted: serde_yaml::to_string(&value).ok(),
+            formatted: serde_yaml_ng::to_string(&value).ok(),
         },
         Err(err) => {
             let (line, column) = err

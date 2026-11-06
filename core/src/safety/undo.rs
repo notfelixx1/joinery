@@ -13,7 +13,7 @@
 
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -138,7 +138,24 @@ pub fn recover_pending(conn: &Connection) -> rusqlite::Result<usize> {
             Ok(records) => records,
             Err(_) => continue, // corrupted payload: leave for manual inspection
         };
-        let applied = records.iter().any(|r| r.to.exists() && !r.from.exists());
+        let applied = records.iter().any(|r| {
+            if r.from.parent() == r.to.parent()
+                && crate::safety::fs::is_case_only_move(&r.from, &r.to)
+            {
+                // A case-only rename keeps the old name resolvable
+                // forever — it is still the same file — so the generic
+                // probe below would always report "not applied" and
+                // drop the undo path. The real directory entries
+                // decide instead: did the file under exactly the new
+                // case appear?
+                match (r.from.parent(), r.to.file_name()) {
+                    (Some(parent), Some(name)) => parent_has_exact_entry(parent, name),
+                    _ => false,
+                }
+            } else {
+                r.to.exists() && !r.from.exists()
+            }
+        });
         if applied {
             mark_committed(conn, id)?;
         } else {
@@ -147,6 +164,17 @@ pub fn recover_pending(conn: &Connection) -> rusqlite::Result<usize> {
         resolved += 1;
     }
     Ok(resolved)
+}
+
+/// Directory listing lookup that is case-sensitive everywhere (unlike
+/// name resolution on Windows/macOS): `OsStr` compares byte-wise.
+fn parent_has_exact_entry(parent: &Path, name: &std::ffi::OsStr) -> bool {
+    match fs::read_dir(parent) {
+        Ok(entries) => entries
+            .filter_map(|e| e.ok())
+            .any(|e| e.file_name() == name),
+        Err(_) => false,
+    }
 }
 
 /// Replay records in reverse: move every `to` back to its `from`.
@@ -363,5 +391,75 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert!(!results[0].1, "stale entries must not be trashed");
         assert!(a.exists());
+    }
+
+    // A crash between a case-only rename and its confirmation: name
+    // resolution cannot tell "renamed" apart on case-insensitive file
+    // systems ("case.jpg" still resolves), so recovery must look at the
+    // real directory entries and keep the journal undoable.
+    #[cfg(any(windows, target_os = "macos"))]
+    #[test]
+    fn recovery_sees_a_case_only_rename_as_applied() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = dir.path().join("case.jpg");
+        fs::write(&src, b"x").expect("write");
+        let target = dir.path().join("case.JPG");
+
+        let conn = memory_db();
+        let id = save_intent(
+            &conn,
+            "renamer",
+            &[RenameRecord {
+                from: src.clone(),
+                to: target.clone(),
+            }],
+        )
+        .expect("intent");
+
+        // Then the rename happens and the process dies.
+        fs::rename(&src, &target).expect("case rename");
+
+        let resolved = recover_pending(&conn).expect("recover");
+        assert_eq!(resolved, 1);
+
+        // The journal survived as undoable, not dropped.
+        let records = load_records(&conn, id).expect("read").expect("committed");
+        assert_eq!(records.len(), 1);
+
+        // And undo works: back to the original case.
+        let undone = undo_records(&records).expect("undo");
+        assert_eq!(undone, 1);
+        let names: Vec<String> = fs::read_dir(dir.path())
+            .expect("read")
+            .map(|e| e.expect("entry").file_name().to_string_lossy().to_string())
+            .collect();
+        assert_eq!(names, vec!["case.jpg".to_string()]);
+    }
+
+    // The negative side: without the rename the intent is still dropped.
+    #[cfg(any(windows, target_os = "macos"))]
+    #[test]
+    fn recovery_drops_a_case_only_intent_that_never_applied() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = dir.path().join("case.jpg");
+        fs::write(&src, b"x").expect("write");
+        let target = dir.path().join("case.JPG");
+
+        let conn = memory_db();
+        let id = save_intent(
+            &conn,
+            "renamer",
+            &[RenameRecord {
+                from: src.clone(),
+                to: target.clone(),
+            }],
+        )
+        .expect("intent");
+
+        // No rename happened before the crash.
+        let resolved = recover_pending(&conn).expect("recover");
+        assert_eq!(resolved, 1);
+        assert!(load_records(&conn, id).expect("read").is_none());
+        assert!(src.exists(), "the file was never touched");
     }
 }

@@ -3,6 +3,10 @@
 //! One walk over the tree; every file's size is attributed to its
 //! top-level entry so the UI can render a "biggest children first" list
 //! without re-walking per entry.
+//!
+//! The walk never follows links. A top-level symlink (or a Windows
+//! junction) is instead flagged as a link, so the report never presents
+//! its uncounted target content as a silent zero.
 
 use std::collections::HashMap;
 use std::fs;
@@ -15,12 +19,40 @@ use walkdir::WalkDir;
 /// How many largest files to report.
 pub const TOP_LARGEST: usize = 20;
 
+/// A top-level entry the walk will not descend into: a symlink, or on
+/// Windows also a junction (a mount-point reparse). std's `is_symlink`
+/// recognizes only real symlinks, junctions are caught by their reparse
+/// attribute.
+fn is_link_entry(path: &Path) -> bool {
+    let md = match fs::symlink_metadata(path) {
+        Ok(md) => md,
+        Err(_) => return false,
+    };
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        if md.file_attributes()
+            & windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT
+            != 0
+        {
+            return true;
+        }
+    }
+    md.file_type().is_symlink()
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntryStat {
     pub name: String,
     pub path: PathBuf,
     pub is_dir: bool,
+    /// The entry (or its target) is a directory, but the walk never
+    /// descends into links — a symlink (all platforms) or a junction
+    /// (Windows). Such an entry's `size` covers only the link itself;
+    /// the target's content stays uncounted, and the UI labels the row
+    /// so a bare "0 bytes" folder is not misread.
+    pub is_link: bool,
     /// Total size of the entry (for dirs — the whole subtree).
     pub size: u64,
     /// Number of files inside (0 for plain files).
@@ -125,10 +157,12 @@ pub fn analyze_folder(root: &Path) -> io::Result<FolderAnalysis> {
         .into_iter()
         .map(|(name, path, is_dir)| {
             let (size, files) = sizes.get(&name).copied().unwrap_or((0, 0));
+            let is_link = is_link_entry(&path);
             EntryStat {
                 name: name.to_string_lossy().to_string(),
                 path,
                 is_dir,
+                is_link,
                 size,
                 files,
             }
@@ -208,6 +242,84 @@ mod tests {
         assert_eq!(analysis.total_size, 0);
         assert!(analysis.entries.is_empty());
         assert!(analysis.largest.is_empty());
+    }
+
+    // Symlink to a folder: reported as a dir AND as a link, and the
+    // walk must not follow it — the target's content stays attributed
+    // to the real folder, not double-counted under the link's name.
+    #[cfg(unix)]
+    #[test]
+    fn symlink_to_a_folder_is_labelled_and_not_followed() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let target = dir.path().join("real");
+        std::fs::create_dir(&target).expect("mkdir");
+        write(&target, "inside.bin", 100);
+        let link = dir.path().join("link");
+        std::os::unix::fs::symlink(&target, &link).expect("symlink");
+
+        let analysis = analyze_folder(dir.path()).expect("analyze");
+
+        let link_entry = analysis
+            .entries
+            .iter()
+            .find(|e| e.name == "link")
+            .expect("link entry");
+        assert!(link_entry.is_link);
+        assert!(link_entry.is_dir, "the target is a folder");
+        assert_eq!(link_entry.size, 0);
+        assert_eq!(link_entry.files, 0);
+
+        let real = analysis
+            .entries
+            .iter()
+            .find(|e| e.name == "real")
+            .expect("real entry");
+        assert!(!real.is_link);
+        assert_eq!(real.size, 100);
+    }
+
+    // Windows junctions (mount points) look like plain directories to
+    // std — but the walk never descends into them either, so they must
+    // be labelled instead of showing a silent zero too.
+    #[cfg(windows)]
+    #[test]
+    fn junction_dir_is_labelled_and_not_followed() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let target = dir.path().join("real");
+        std::fs::create_dir(&target).expect("mkdir");
+        write(&target, "inside.bin", 100);
+
+        let junction = dir.path().join("junction");
+        let out = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(&junction)
+            .arg(&target)
+            .output()
+            .expect("run mklink");
+        assert!(
+            out.status.success(),
+            "mklink /J failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+
+        let analysis = analyze_folder(dir.path()).expect("analyze");
+
+        let j = analysis
+            .entries
+            .iter()
+            .find(|e| e.name == "junction")
+            .expect("junction entry");
+        assert!(j.is_link, "a junction must carry the link label");
+        assert!(j.is_dir);
+        assert_eq!(j.size, 0);
+
+        let real = analysis
+            .entries
+            .iter()
+            .find(|e| e.name == "real")
+            .expect("real entry");
+        assert!(!real.is_link);
+        assert_eq!(real.size, 100);
     }
 
     // Only Linux: APFS (macOS) rejects non-UTF-8 names outright
