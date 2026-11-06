@@ -97,8 +97,92 @@ pub struct App {
     pub diff: DiffState,
 }
 
+/// Command-line options: `joinery --renamer --folder "D:\photos" --dark`.
+#[derive(Debug, Default)]
+pub struct Options {
+    pub page: Option<Page>,
+    pub file_tool: Option<FileTool>,
+    pub dev_tool: Option<DevTool>,
+    pub dark: Option<bool>,
+    pub lang: Option<Lang>,
+    pub folder: Option<PathBuf>,
+}
+
+const HELP: &str = "\
+Joinery Tools — one app. Everyday tools. No nonsense.
+
+Usage:
+  joinery [OPTIONS]
+
+Open directly on a tool:
+  --renamer       Batch Renamer
+  --duplicates    Duplicate Finder
+  --analyzer      Folder Analyzer
+  --checksum      Checksum
+  --jsonyaml      JSON / YAML Validator
+  --diff          Text Diff
+  --history       History
+  --system        System
+  --support       Support
+
+Options:
+  --dark | --light    Theme (overrides the saved one)
+  --lang en|ru        Interface language
+  --folder <path>     Preselect a folder for the file tool
+  --help              Show this text
+";
+
+impl Options {
+    /// Parse the command line. Unknown arguments are ignored, so the
+    /// exe stays launchable from any shortcut.
+    pub fn from_env() -> Self {
+        let mut opts = Self::default();
+        let mut args = std::env::args().skip(1);
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--renamer" => opts.file_tool = Some(FileTool::Renamer),
+                "--duplicates" => opts.file_tool = Some(FileTool::Duplicates),
+                "--analyzer" => opts.file_tool = Some(FileTool::Analyzer),
+                "--checksum" => opts.file_tool = Some(FileTool::Checksum),
+                "--jsonyaml" => opts.dev_tool = Some(DevTool::JsonYaml),
+                "--diff" => opts.dev_tool = Some(DevTool::Diff),
+                "--history" => opts.page = Some(Page::History),
+                "--home" => opts.page = Some(Page::Home),
+                "--system" => opts.page = Some(Page::System),
+                "--support" => opts.page = Some(Page::Support),
+                "--dark" => opts.dark = Some(true),
+                "--light" => opts.dark = Some(false),
+                "--lang" => {
+                    if let Some(v) = args.next() {
+                        opts.lang = Some(Lang::from_str(&v));
+                    }
+                }
+                "--folder" => {
+                    if let Some(v) = args.next() {
+                        opts.folder = Some(PathBuf::from(v));
+                    }
+                }
+                "--help" | "-h" => {
+                    println!("{HELP}");
+                    std::process::exit(0);
+                }
+                _ => {}
+            }
+        }
+        // A tool flag implies its page unless one was named explicitly.
+        if opts.page.is_none() {
+            if opts.file_tool.is_some() {
+                opts.page = Some(Page::Files);
+            } else if opts.dev_tool.is_some() {
+                opts.page = Some(Page::Developer);
+            }
+        }
+        opts
+    }
+}
+
 impl App {
-    pub fn new() -> (App, Task<Msg>) {
+    pub fn new(options: Options) -> (App, Task<Msg>) {
         let db_path = dirs::data_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("dev.joinery.tools")
@@ -131,31 +215,44 @@ impl App {
             }
         }
 
-        (
-            App {
-                page: Page::Home,
-                file_tool: FileTool::Renamer,
-                dev_tool: DevTool::JsonYaml,
-                dark,
-                lang,
-                db,
-                history: Vec::new(),
-                history_note: None,
-                ren_recent,
-                dup_recent,
-                ana_recent,
-                ren: RenamerState::default(),
-                dup: DuplicatesState {
-                    min_size: "1".to_string(),
-                    ..DuplicatesState::default()
-                },
-                ana: AnalyzerState::default(),
-                cks: ChecksumState::default(),
-                jy: JsonYamlState::default(),
-                diff: DiffState::default(),
+        // Command-line overrides win over the saved settings.
+        dark = options.dark.unwrap_or(dark);
+        lang = options.lang.unwrap_or(lang);
+
+        let mut app = App {
+            page: options.page.unwrap_or(Page::Home),
+            file_tool: options.file_tool.unwrap_or(FileTool::Renamer),
+            dev_tool: options.dev_tool.unwrap_or(DevTool::JsonYaml),
+            dark,
+            lang,
+            db,
+            history: Vec::new(),
+            history_note: None,
+            ren_recent,
+            dup_recent,
+            ana_recent,
+            ren: RenamerState::default(),
+            dup: DuplicatesState {
+                min_size: "1".to_string(),
+                ..DuplicatesState::default()
             },
-            Task::none(),
-        )
+            ana: AnalyzerState::default(),
+            cks: ChecksumState::default(),
+            jy: JsonYamlState::default(),
+            diff: DiffState::default(),
+        };
+
+        // A folder from the command line preselects the active file tool.
+        if let Some(folder) = options.folder {
+            match app.file_tool {
+                FileTool::Renamer => app.ren.folder = Some(folder.clone()),
+                FileTool::Duplicates => app.dup.folder = Some(folder.clone()),
+                FileTool::Analyzer => app.ana.folder = Some(folder.clone()),
+                FileTool::Checksum => app.cks.paths = vec![folder],
+            }
+        }
+
+        (app, Task::none())
     }
 
     pub fn iced_theme(&self) -> iced::Theme {

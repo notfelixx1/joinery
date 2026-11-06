@@ -16,6 +16,9 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   SQLite and offered as one click in the empty states.
 - **Ko-fi** — the Support page opens the donation page in the browser,
   and the README links it directly.
+- **Command-line flags** — `joinery --renamer --folder "D:\photos"
+  --dark` opens straight on a tool with the theme, language and folder
+  preset; `--help` lists them all.
 
 ### Changed
 

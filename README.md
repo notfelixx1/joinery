@@ -48,6 +48,21 @@ Grab a ready binary from the
 [Releases](https://github.com/notfelixx1/joinery/releases/latest) page —
 Windows, Linux and macOS builds are attached to every release.
 
+## Command line
+
+Launch straight on a tool, with a preset theme, language or folder:
+
+```bash
+joinery --renamer --folder "D:\photos" --dark
+joinery --duplicates --lang ru
+```
+
+Flags: `--renamer` `--duplicates` `--analyzer` `--checksum` `--jsonyaml`
+`--diff` `--history` `--system` `--support` open the matching tool,
+`--dark` / `--light` override the saved theme, `--lang en|ru` switches
+the language, `--folder <path>` preselects a folder, `--help` prints
+the list.
+
 ## Building from source
 
 Requirements: [Rust](https://rustup.rs) 1.77+ and the usual platform build

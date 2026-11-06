@@ -12,6 +12,7 @@ mod views;
 use iced::window;
 
 fn main() -> iced::Result {
+    let options = app::Options::from_env();
     iced::application("Joinery Tools", app::update, views::view)
         .theme(|state: &app::App| state.iced_theme())
         .subscription(app::subscription)
@@ -21,5 +22,5 @@ fn main() -> iced::Result {
             position: window::Position::Centered,
             ..Default::default()
         })
-        .run_with(app::App::new)
+        .run_with(move || app::App::new(options))
 }
