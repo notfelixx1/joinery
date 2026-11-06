@@ -70,6 +70,7 @@ fn main() {
         .map(|n| n.get())
         .unwrap_or(1);
     println!("Joinery core benchmarks — release profile, {threads} threads");
+    println!("SHA-NI hardware: {}", is_x86_feature_detected!("sha"));
     println!("(wall time on this machine; background load adds noise)");
     println!();
 

@@ -13,7 +13,7 @@ use sha1::Sha1;
 use sha2::{Digest, Sha256};
 
 /// Size of one read chunk (64 KiB).
-pub const BUFFER_SIZE: usize = 64 * 1024;
+pub const BUFFER_SIZE: usize = 1024 * 1024;
 
 /// Number of bytes hashed for the cheap "partial" pass used by the
 /// duplicate finder before committing to a full read.
@@ -52,7 +52,7 @@ fn hash_with<D: Digest>(path: &Path, mut hasher: D, limit: Option<u64>) -> std::
     let file_len = file.metadata().map(|m| m.len()).unwrap_or(u64::MAX);
     let remaining_limit = limit.map(|l| l.min(file_len));
     let mut reader = BufReader::with_capacity(BUFFER_SIZE, file);
-    let mut buffer = [0u8; BUFFER_SIZE];
+    let mut buffer = vec![0u8; BUFFER_SIZE];
     let mut taken: u64 = 0;
     loop {
         // Never read past the optional byte limit.
