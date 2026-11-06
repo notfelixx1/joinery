@@ -36,6 +36,9 @@ jobs:
     # Advisory database check on every push/PR: known CVEs in the
     # dependency tree fail the build. Runs once, not per-OS.
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
