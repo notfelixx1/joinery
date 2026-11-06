@@ -1,8 +1,8 @@
 //! Application state, messages and the update loop.
 //!
 //! Everything heavy delegates to `joinery_tools::core` / `::safety` —
-//! exactly the same functions the Tauri commands call. No IPC here:
-//! the native frontend talks to the core in-process.
+//! the native frontend talks to the core in-process: no IPC, no
+//! bundled browser, no network.
 //!
 //! Global state (navigation, theme, language, storage) and the dispatch
 //! live here; every tool owns its slice of the app in a sibling module
