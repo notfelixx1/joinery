@@ -140,9 +140,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 checkbox(tr(lang, "renamer.subfolders"), r.include_subfolders)
                     .on_toggle(|v| Msg::Renamer(RenMsg::Subfolders(v)))
                     .text_size(13),
-                checkbox(tr(lang, "renamer.allowOverwrite"), r.allow_overwrite)
-                    .on_toggle(|v| Msg::Renamer(RenMsg::AllowOverwrite(v)))
-                    .text_size(13),
+                iced::widget::tooltip(
+                    checkbox(tr(lang, "renamer.allowOverwrite"), r.allow_overwrite)
+                        .on_toggle(|v| Msg::Renamer(RenMsg::AllowOverwrite(v)))
+                        .text_size(13),
+                    text(tr(lang, "renamer.allowOverwrite.hint")).size(12),
+                    iced::widget::tooltip::Position::Top,
+                ),
             ]
             .spacing(20),
         ]

@@ -93,6 +93,18 @@ pub fn scheme(dark: bool) -> &'static Scheme {
     }
 }
 
+impl Scheme {
+    /// A translucent danger overlay for hover/press feedback.
+    pub fn danger_tint(&self, alpha: f32) -> Color {
+        Color {
+            r: self.danger.r,
+            g: self.danger.g,
+            b: self.danger.b,
+            a: alpha,
+        }
+    }
+}
+
 /// Palette for the built-in iced theme engine.
 pub fn palette(dark: bool) -> iced::theme::Palette {
     let scheme = scheme(dark);

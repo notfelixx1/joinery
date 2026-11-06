@@ -2,6 +2,7 @@
 
 use iced::Task;
 
+use joinery_tools::core::renamer::RenameRecord;
 use joinery_tools::safety::undo;
 
 use super::flatten;
@@ -11,6 +12,13 @@ use super::App;
 pub enum Msg {
     /// Undo one journal entry from the History page.
     Journal(i64),
+    /// The undo confirmation dialog has been answered.
+    JournalConfirmed {
+        id: i64,
+        total: usize,
+        confirmed: bool,
+        records: Vec<RenameRecord>,
+    },
     JournalReady {
         id: i64,
         total: usize,
@@ -47,6 +55,40 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                 }
             };
             let total = records.len();
+            let confirm_text = crate::i18n::fmt(
+                crate::i18n::tr(app.lang, "history.confirm"),
+                &[("n", total.to_string())],
+            );
+            Task::perform(
+                tokio::task::spawn_blocking(move || {
+                    let confirmed = rfd::MessageDialog::new()
+                        .set_title("Joinery Tools")
+                        .set_description(&confirm_text)
+                        .set_buttons(rfd::MessageButtons::OkCancel)
+                        .show();
+                    matches!(
+                        confirmed,
+                        rfd::MessageDialogResult::Ok | rfd::MessageDialogResult::Yes
+                    )
+                }),
+                move |res| Msg::JournalConfirmed {
+                    id,
+                    total,
+                    // A JoinError (dialog task panicked) counts as "no".
+                    confirmed: matches!(res, Ok(true)),
+                    records: records.clone(),
+                },
+            )
+        }
+        Msg::JournalConfirmed {
+            id,
+            total,
+            confirmed,
+            records,
+        } => {
+            if !confirmed {
+                return Task::none();
+            }
             Task::perform(
                 tokio::task::spawn_blocking(move || {
                     undo::undo_records(&records).map_err(|e| e.to_string())

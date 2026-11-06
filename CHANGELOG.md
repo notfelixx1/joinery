@@ -17,6 +17,14 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Ko-fi** — the Support page opens the donation page in the browser,
   and the README links it directly.
 
+### Changed
+
+- Button feedback everywhere: a pressed state (the button sinks one
+  surface step), hover fills on ghost and danger buttons, tooltips on
+  the icon-only buttons and the overwrite checkbox, a transient
+  "Copied" label on checksum results, and an undo confirmation dialog
+  on the History page.
+
 ## [0.1.0] — 2026-11-05
 
 First public milestone: six quality tools instead of twenty half-made ones.

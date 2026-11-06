@@ -176,7 +176,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
         let mut rows = column![].spacing(0).width(Length::Fill);
         for item in results {
-            rows = rows.push(result_row(dark, lang, item));
+            rows = rows.push(result_row(dark, lang, c.copied.as_deref(), item));
         }
         body = body.push(scrollable(rows).height(Length::Fixed(320.0)));
 
@@ -186,7 +186,12 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     col.into()
 }
 
-fn result_row(dark: bool, lang: crate::i18n::Lang, item: &ChecksumItem) -> Element<'_, Msg> {
+fn result_row<'a>(
+    dark: bool,
+    lang: crate::i18n::Lang,
+    copied: Option<&'a str>,
+    item: &'a ChecksumItem,
+) -> Element<'a, Msg> {
     let s = palette::scheme(dark);
     let name = item
         .path
@@ -213,10 +218,15 @@ fn result_row(dark: bool, lang: crate::i18n::Lang, item: &ChecksumItem) -> Eleme
         .into(),
     };
 
+    let copy_label = if copied == item.hash.as_deref() {
+        tr(lang, "common.copied")
+    } else {
+        tr(lang, "common.copy")
+    };
     let copy_cell: Element<Msg> = if item.hash.is_some() {
         crate::views::btn(
             dark,
-            tr(lang, "common.copy"),
+            copy_label,
             Msg::Checksum(CksMsg::Copy(item.hash.clone().unwrap_or_default())),
         )
     } else {

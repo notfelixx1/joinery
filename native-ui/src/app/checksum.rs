@@ -22,6 +22,9 @@ pub struct ChecksumState {
     pub busy: bool,
     pub results: Option<Vec<ChecksumItem>>,
     pub expected: String,
+    /// Hash of the last copied result — drives the transient
+    /// "Copied" label; cleared by `Msg::CopyClear` after a moment.
+    pub copied: Option<String>,
     pub error: Option<String>,
 }
 
@@ -33,6 +36,7 @@ impl Default for ChecksumState {
             busy: false,
             results: None,
             expected: String::new(),
+            copied: None,
             error: None,
         }
     }
@@ -47,6 +51,7 @@ pub enum Msg {
     Done(Vec<ChecksumItem>),
     Expected(String),
     Copy(String),
+    CopyClear,
 }
 
 /// Native multi-file picker running off the main thread.
@@ -117,7 +122,20 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.cks.expected = v;
             Task::none()
         }
-        Msg::Copy(hash) => iced::clipboard::write::<Msg>(hash),
+        Msg::Copy(hash) => {
+            app.cks.copied = Some(hash.clone());
+            Task::batch([
+                iced::clipboard::write::<Msg>(hash),
+                Task::perform(
+                    tokio::time::sleep(std::time::Duration::from_millis(1500)),
+                    |_| Msg::CopyClear,
+                ),
+            ])
+        }
+        Msg::CopyClear => {
+            app.cks.copied = None;
+            Task::none()
+        }
     }
 }
 

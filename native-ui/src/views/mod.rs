@@ -82,8 +82,11 @@ pub fn btn_style(dark: bool, variant: BtnVariant, status: button::Status) -> but
     };
     match status {
         button::Status::Hovered => {
-            if variant == BtnVariant::Plain {
+            if variant == BtnVariant::Plain || variant == BtnVariant::Ghost {
                 style.background = Some(s.surface_hover.into());
+            }
+            if variant == BtnVariant::Danger {
+                style.background = Some(s.danger_tint(0.08).into());
             }
             style.border.color = if variant == BtnVariant::Primary {
                 s.accent
@@ -96,6 +99,23 @@ pub fn btn_style(dark: bool, variant: BtnVariant, status: button::Status) -> but
             };
             if variant == BtnVariant::Ghost {
                 style.text_color = s.text;
+            }
+        }
+        button::Status::Pressed => {
+            // Tactile feedback: the button sinks one surface step.
+            match variant {
+                BtnVariant::Plain | BtnVariant::Ghost => {
+                    style.background = Some(s.surface_active.into());
+                    style.text_color = s.text;
+                }
+                BtnVariant::Primary => {
+                    style.background = Some(dim(s.accent, 0.85).into());
+                    style.text_color = s.accent_text;
+                }
+                BtnVariant::Danger => {
+                    style.background = Some(s.danger_tint(0.16).into());
+                    style.border.color = s.danger;
+                }
             }
         }
         button::Status::Disabled => {
@@ -199,6 +219,16 @@ fn topbar_icon(dark: bool, icon: Svg<'static>) -> Element<'static, Msg> {
         }),
     })
     .into()
+}
+
+/// Slightly darken a fill color for pressed feedback.
+fn dim(color: Color, factor: f32) -> Color {
+    Color {
+        r: color.r * factor,
+        g: color.g * factor,
+        b: color.b * factor,
+        a: color.a,
+    }
 }
 
 /// Centered "nothing here yet" card: icon, one line, one action.
@@ -579,22 +609,30 @@ fn topbar(app: &App) -> Element<'_, Msg> {
     row![
         text(tr(app.lang, title_key)).size(20),
         iced::widget::horizontal_space(),
-        icon_btn(
-            app.dark,
-            topbar_icon(app.dark, icons::globe()),
-            Msg::ToggleLang
-        ),
-        icon_btn(
-            app.dark,
-            topbar_icon(
+        iced::widget::tooltip(
+            icon_btn(
                 app.dark,
-                if app.dark {
-                    icons::sun()
-                } else {
-                    icons::moon()
-                }
+                topbar_icon(app.dark, icons::globe()),
+                Msg::ToggleLang
             ),
-            Msg::ToggleTheme
+            text(tr(app.lang, "lang.toggle")).size(12),
+            iced::widget::tooltip::Position::Bottom,
+        ),
+        iced::widget::tooltip(
+            icon_btn(
+                app.dark,
+                topbar_icon(
+                    app.dark,
+                    if app.dark {
+                        icons::sun()
+                    } else {
+                        icons::moon()
+                    }
+                ),
+                Msg::ToggleTheme
+            ),
+            text(tr(app.lang, "theme.toggle")).size(12),
+            iced::widget::tooltip::Position::Bottom,
         ),
     ]
     .spacing(4)

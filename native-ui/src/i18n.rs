@@ -153,6 +153,17 @@ static EN: &[(&str, &str)] = &[
     ("empty.duplicates.hint", "Pick a folder — I'll find duplicate files by content."),
     ("empty.analyzer.hint", "Pick a folder — see what eats your disk space."),
     ("empty.checksum.hint", "Pick files — get their SHA-256, SHA-1 or MD5 hashes."),
+    ("lang.toggle", "Switch language"),
+    ("theme.toggle", "Toggle theme"),
+    ("common.copied", "Copied"),
+    (
+        "history.confirm",
+        "Undo the renaming of {n} file(s)? The names go back to what they were.",
+    ),
+    (
+        "renamer.allowOverwrite.hint",
+        "When checked, existing targets are replaced.",
+    ),
 ];
 
 static RU: &[(&str, &str)] = &[
@@ -286,6 +297,17 @@ static RU: &[(&str, &str)] = &[
     ("empty.duplicates.hint", "Выберите папку — найду дубликаты файлов по содержимому."),
     ("empty.analyzer.hint", "Выберите папку — покажу, что занимает место на диске."),
     ("empty.checksum.hint", "Выберите файлы — посчитаю хеши SHA-256, SHA-1 или MD5."),
+    ("lang.toggle", "Сменить язык"),
+    ("theme.toggle", "Переключить тему"),
+    ("common.copied", "Скопировано"),
+    (
+        "history.confirm",
+        "Отменить переименование {n} файл(ов)? Имена вернутся к исходным.",
+    ),
+    (
+        "renamer.allowOverwrite.hint",
+        "Если включено — существующие цели будут заменены.",
+    ),
 ];
 
 /// Translate a key for the given language; unknown keys render as empty.
