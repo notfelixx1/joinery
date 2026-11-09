@@ -10,13 +10,16 @@
 //! explicit confirmation, into the system trash.
 
 use std::collections::HashMap;
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use walkdir::WalkDir;
 
-use crate::core::checksum::{hash_file, hash_prefix, Algorithm, PARTIAL_HASH_BYTES};
+use crate::core::checksum::{
+    hash_bytes, hash_file, hash_prefix, Algorithm, INLINE_HASH_LIMIT, PARTIAL_HASH_BYTES,
+};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -121,9 +124,43 @@ pub fn find_duplicates(
 
     let mut groups: Vec<DuplicateGroup> = Vec::new();
     for (size, paths) in candidates {
+        // Files up to the inline limit are read ONCE and fully hashed
+        // from memory — the partial pass is subsumed, halving the file
+        // opens for the common small-file case. Larger files keep the
+        // two-pass flow (partial 4 KiB pre-filter, then full hash).
+        let inline_limit = INLINE_HASH_LIMIT.min(size);
+        let (inline, streamed): (Vec<PathBuf>, Vec<PathBuf>) =
+            paths.into_iter().partition(|_| size <= inline_limit);
+
+        let mut inline_groups: HashMap<String, Vec<PathBuf>> = HashMap::new();
+        for path in &inline {
+            match fs::read(path) {
+                Ok(data) => {
+                    inline_groups
+                        .entry(hash_bytes(&data))
+                        .or_default()
+                        .push(path.clone());
+                }
+                Err(_) => skipped += 1,
+            }
+        }
+        for (hash, duplicates) in inline_groups {
+            if duplicates.len() < 2 {
+                continue;
+            }
+            let files = duplicates
+                .into_iter()
+                .map(|path| DuplicateFile { path, size })
+                .collect();
+            groups.push(DuplicateGroup { hash, size, files });
+        }
+
+        if streamed.is_empty() {
+            continue;
+        }
         // Pass 2: cheap partial hash.
         let partial = group_by(
-            &paths,
+            &streamed,
             |p| hash_prefix(p, Algorithm::Sha256, PARTIAL_HASH_BYTES.min(size)),
             &mut skipped,
         );

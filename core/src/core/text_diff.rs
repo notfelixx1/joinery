@@ -40,6 +40,10 @@ pub struct DiffResult {
 }
 
 /// Compare two texts line by line.
+///
+/// The default Myers algorithm measured fastest across all scales on
+/// the reference machine; `similar`'s Patience variant benchmarked
+/// 2.8-7x slower (see core/examples/bench.rs) and was rejected.
 pub fn diff_texts(old_text: &str, new_text: &str) -> DiffResult {
     let diff = TextDiff::from_lines(old_text, new_text);
     let mut rows = Vec::new();

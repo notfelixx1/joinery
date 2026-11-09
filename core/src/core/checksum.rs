@@ -19,6 +19,10 @@ pub const BUFFER_SIZE: usize = 1024 * 1024;
 /// duplicate finder before committing to a full read.
 pub const PARTIAL_HASH_BYTES: u64 = 4 * 1024;
 
+/// Files up to this size are read once and fully hashed from memory
+/// by the duplicate finder, skipping the partial-hash pass.
+pub const INLINE_HASH_LIMIT: u64 = 256 * 1024;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Algorithm {
@@ -75,6 +79,14 @@ fn hash_with<D: Digest>(path: &Path, mut hasher: D, limit: Option<u64>) -> std::
         taken += read as u64;
     }
     Ok(hex::encode(hasher.finalize()))
+}
+
+/// Hex SHA-256 of an in-memory buffer — used by the duplicate finder
+/// for small files that are read once instead of twice.
+pub fn hash_bytes(data: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hex::encode(hasher.finalize())
 }
 
 /// Full hash of a file.
