@@ -63,6 +63,21 @@ Flags: `--renamer` `--duplicates` `--analyzer` `--checksum` `--jsonyaml`
 the language, `--folder <path>` preselects a folder, `--help` prints
 the list.
 
+## Benchmarks
+
+Measured on the developer's machine (Pentium G4560, 2 cores, release
+profile) — absolute numbers vary by hardware, the relative picture is
+what matters:
+
+![Core benchmarks](docs/benchmarks.png)
+
+Reproduce:
+
+```bash
+cargo run --release -p joinery-tools --example bench -- --json
+python scripts/bench_chart.py bench.json docs/benchmarks.png
+```
+
 ## Building from source
 
 Requirements: [Rust](https://rustup.rs) 1.77+ and the usual platform build

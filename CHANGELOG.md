@@ -27,6 +27,11 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the icon-only buttons and the overwrite checkbox, a transient
   "Copied" label on checksum results, and an undo confirmation dialog
   on the History page.
+- **Benchmarks** — a release example (`core/examples/bench.rs`) measures
+  every core module at three scales with correctness assertions inside
+  each timed operation; `scripts/bench_chart.py` renders the results
+  chart. Hashing now uses 1 MiB read buffers, and duplicate scanning
+  reads small files once instead of twice.
 
 ## [0.1.0] — 2026-11-05
 
