@@ -164,6 +164,10 @@ static EN: &[(&str, &str)] = &[
         "renamer.allowOverwrite.hint",
         "When checked, existing targets are replaced.",
     ),
+    (
+        "diff.giantConfirm",
+        "Giant diff: {n} lines. Building it may take a while and use a lot of memory. Continue?",
+    ),
 ];
 
 static RU: &[(&str, &str)] = &[
@@ -307,6 +311,10 @@ static RU: &[(&str, &str)] = &[
     (
         "renamer.allowOverwrite.hint",
         "Если включено — существующие цели будут заменены.",
+    ),
+    (
+        "diff.giantConfirm",
+        "Гигантский дифф: {n} строк. Построение может занять время и память. Продолжить?",
     ),
 ];
 

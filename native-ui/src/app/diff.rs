@@ -110,10 +110,33 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         Msg::Run => {
             let old = app.diff.old_text.text().to_string();
             let new = app.diff.new_text.text().to_string();
+            let lang = app.lang;
             app.diff.busy = true;
             app.diff.error = None;
             Task::perform(
-                tokio::task::spawn_blocking(move || Ok(text_diff::diff_texts(&old, &new))),
+                tokio::task::spawn_blocking(move || {
+                    // Giant inputs get a confirmation first: the result
+                    // rows are heavy to build and display.
+                    let lines = old.lines().count() + new.lines().count();
+                    if lines > 200_000 {
+                        let confirm_text = crate::i18n::fmt(
+                            crate::i18n::tr(lang, "diff.giantConfirm"),
+                            &[("n", lines.to_string())],
+                        );
+                        let confirmed = rfd::MessageDialog::new()
+                            .set_title("Joinery Tools")
+                            .set_description(&confirm_text)
+                            .set_buttons(rfd::MessageButtons::OkCancel)
+                            .show();
+                        if !matches!(
+                            confirmed,
+                            rfd::MessageDialogResult::Ok | rfd::MessageDialogResult::Yes
+                        ) {
+                            return Err("cancelled".to_string());
+                        }
+                    }
+                    Ok(text_diff::diff_texts(&old, &new))
+                }),
                 |res| Msg::Done(flatten(res)),
             )
         }
@@ -121,6 +144,7 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.diff.busy = false;
             match res {
                 Ok(result) => app.diff.result = Some(result),
+                Err(err) if err == "cancelled" => {}
                 Err(err) => app.diff.error = Some(err),
             }
             Task::none()

@@ -19,9 +19,21 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Command-line flags** — `joinery --renamer --folder "D:\photos"
   --dark` opens straight on a tool with the theme, language and folder
   preset; `--help` lists them all.
+- **Scaling benchmarks** — `core/examples/bench.rs` measures every core
+  module at three scales (100/1k/10k files, 100 MB/1 GB hashing,
+  20k/100k/1M diff lines, deep vs wide trees) with correctness asserts
+  inside each timed operation and machine-readable `--json` output;
+  `scripts/bench_chart.py` renders the results chart.
 
 ### Changed
 
+- **Diff engine** — `similar` (Myers) is replaced by `imara-diff`
+  (Histogram, the engine used by the Helix editor): a 1M-line diff
+  drops from ~5 minutes to ~2 minutes, and 100k-line inputs from
+  3.3 s to 1.2 s on the reference machine.
+- **Duplicate scanning** — files up to 256 KB are read once and fully
+  hashed from memory instead of being opened twice (partial + full
+  passes); hashing uses 1 MiB read buffers.
 - Button feedback everywhere: a pressed state (the button sinks one
   surface step), hover fills on ghost and danger buttons, tooltips on
   the icon-only buttons and the overwrite checkbox, a transient
