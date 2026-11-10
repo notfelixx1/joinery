@@ -115,6 +115,26 @@ fn pseudo_lines(count: usize, salt: u8) -> String {
     out
 }
 
+/// Hardware SHA acceleration on the current CPU: SHA-NI on x86-64,
+/// the SHA2 extensions on ARM64. Detection is gated per target —
+/// `is_x86_feature_detected!` does not even compile on aarch64, which
+/// is what broke the macOS CI job before this gate existed.
+#[cfg(target_arch = "x86_64")]
+fn hardware_sha() -> bool {
+    is_x86_feature_detected!("sha")
+}
+
+#[cfg(target_arch = "aarch64")]
+fn hardware_sha() -> bool {
+    // Unlike the x86 macro, the aarch64 one is not in the prelude.
+    std::arch::is_aarch64_feature_detected!("sha2")
+}
+
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+fn hardware_sha() -> bool {
+    false
+}
+
 /// Spread `files` files across `dirs` directories: file i lives in
 /// dir (i % dirs), content seeded by (i + seed_base) — all distinct.
 fn make_tree(root: &Path, files: usize, dirs: usize, file_bytes: usize, seed_base: u32) {
@@ -159,10 +179,10 @@ fn main() {
     let threads = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(1);
-    let sha_ni = is_x86_feature_detected!("sha");
+    let hardware_sha = hardware_sha();
     if !json_mode {
         println!("Joinery core scaling benchmarks — release profile, {threads} threads");
-        println!("SHA-NI hardware: {sha_ni}");
+        println!("Hardware SHA acceleration: {hardware_sha}");
         println!("(wall time on this machine; background load adds noise)");
         println!();
     }
@@ -495,7 +515,7 @@ fn main() {
             serde_json::json!({
                 "date": chrono::Utc::now().to_rfc3339(),
                 "threads": threads,
-                "sha_ni": sha_ni,
+                "hardware_sha": hardware_sha,
                 "results": records,
             })
         );
