@@ -60,6 +60,10 @@ pub enum DevTool {
 #[derive(Debug, Clone)]
 pub enum Msg {
     Nav(Page),
+    /// Expand/collapse a sidebar section; opening also navigates there.
+    ToggleNav(Page),
+    /// One animation frame of the section slide-out reveal.
+    AnimTick,
     FileTool(FileTool),
     DevTool(DevTool),
     ToggleTheme,
@@ -75,6 +79,15 @@ pub enum Msg {
     History(history::Msg),
 }
 
+/// The slide-out animation of a sidebar section: `t` runs 0.0 → 1.0
+/// while the sub-items of `page` move in (`opening`) or out.
+#[derive(Debug, PartialEq)]
+pub struct NavReveal {
+    pub page: Page,
+    pub opening: bool,
+    pub t: f32,
+}
+
 pub struct App {
     pub page: Page,
     pub file_tool: FileTool,
@@ -82,6 +95,10 @@ pub struct App {
     pub dark: bool,
     pub lang: Lang,
     pub db: Option<Connection>,
+    /// The currently expanded sidebar section, if any.
+    pub nav_open: Option<Page>,
+    /// The section reveal animation in flight, if any.
+    pub nav_reveal: Option<NavReveal>,
 
     pub history: Vec<undo::JournalEntry>,
     pub history_note: Option<String>,
@@ -219,13 +236,20 @@ impl App {
         dark = options.dark.unwrap_or(dark);
         lang = options.lang.unwrap_or(lang);
 
+        let page = options.page.unwrap_or(Page::Home);
         let mut app = App {
-            page: options.page.unwrap_or(Page::Home),
+            page,
             file_tool: options.file_tool.unwrap_or(FileTool::Renamer),
             dev_tool: options.dev_tool.unwrap_or(DevTool::JsonYaml),
             dark,
             lang,
             db,
+            // Launching straight on a tool opens its sidebar section.
+            nav_open: match page {
+                Page::Files | Page::Developer => Some(page),
+                _ => None,
+            },
+            nav_reveal: None,
             history: Vec::new(),
             history_note: None,
             ren_recent,
@@ -261,7 +285,17 @@ impl App {
 }
 
 pub fn subscription(app: &App) -> Subscription<Msg> {
-    duplicates::scan_subscription(app).map(Msg::Duplicates)
+    // The section reveal animates with a 60 fps tick for as long as it
+    // is in flight; nothing runs when the sidebar is at rest.
+    let reveal = if app.nav_reveal.is_some() {
+        iced::time::every(std::time::Duration::from_millis(16)).map(|_| Msg::AnimTick)
+    } else {
+        Subscription::none()
+    };
+    Subscription::batch([
+        reveal,
+        duplicates::scan_subscription(app).map(Msg::Duplicates),
+    ])
 }
 
 pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
@@ -273,12 +307,38 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             }
             Task::none()
         }
+        Msg::ToggleNav(page) => {
+            // Opening a section also navigates to it; closing only
+            // collapses the group.
+            let opening = app.nav_open != Some(page);
+            if opening {
+                app.page = page;
+            }
+            app.nav_open = if opening { Some(page) } else { None };
+            app.nav_reveal = Some(NavReveal {
+                page,
+                opening,
+                t: 0.0,
+            });
+            Task::none()
+        }
+        Msg::AnimTick => {
+            if let Some(reveal) = &mut app.nav_reveal {
+                reveal.t += 0.12;
+                if reveal.t >= 1.0 {
+                    app.nav_reveal = None;
+                }
+            }
+            Task::none()
+        }
         Msg::FileTool(tool) => {
             app.file_tool = tool;
+            app.page = Page::Files;
             Task::none()
         }
         Msg::DevTool(tool) => {
             app.dev_tool = tool;
+            app.page = Page::Developer;
             Task::none()
         }
         Msg::ToggleTheme => {
@@ -362,6 +422,8 @@ pub(crate) fn test_app() -> App {
         dark: false,
         lang: Lang::En,
         db: None,
+        nav_open: None,
+        nav_reveal: None,
         history: Vec::new(),
         history_note: None,
         ren_recent: Vec::new(),
@@ -373,5 +435,81 @@ pub(crate) fn test_app() -> App {
         cks: ChecksumState::default(),
         jy: JsonYamlState::default(),
         diff: DiffState::default(),
+    }
+}
+
+#[cfg(test)]
+mod nav_tests {
+    use super::*;
+
+    #[test]
+    fn toggling_a_closed_section_opens_and_navigates() {
+        let mut app = test_app();
+        assert_eq!(app.nav_open, None);
+
+        let _ = update(&mut app, Msg::ToggleNav(Page::Files));
+
+        assert_eq!(app.nav_open, Some(Page::Files));
+        assert_eq!(app.page, Page::Files);
+        let reveal = app.nav_reveal.expect("reveal in flight");
+        assert_eq!(reveal.page, Page::Files);
+        assert!(reveal.opening);
+    }
+
+    #[test]
+    fn toggling_an_open_section_collapses_without_navigating() {
+        let mut app = test_app();
+        app.page = Page::Home;
+        app.nav_open = Some(Page::Files);
+
+        let _ = update(&mut app, Msg::ToggleNav(Page::Files));
+
+        assert_eq!(app.nav_open, None);
+        assert_eq!(app.page, Page::Home, "closing must not navigate");
+        let reveal = app.nav_reveal.expect("reveal in flight");
+        assert!(!reveal.opening);
+    }
+
+    #[test]
+    fn switching_sections_moves_the_open_group() {
+        let mut app = test_app();
+        app.nav_open = Some(Page::Files);
+
+        let _ = update(&mut app, Msg::ToggleNav(Page::Developer));
+
+        assert_eq!(app.nav_open, Some(Page::Developer));
+        assert_eq!(app.page, Page::Developer);
+    }
+
+    #[test]
+    fn animation_ticks_finish_and_clear_the_reveal() {
+        let mut app = test_app();
+        let _ = update(&mut app, Msg::ToggleNav(Page::Files));
+
+        for _ in 0..20 {
+            let _ = update(&mut app, Msg::AnimTick);
+        }
+
+        assert_eq!(app.nav_reveal, None, "the reveal must settle");
+        assert_eq!(app.nav_open, Some(Page::Files));
+
+        // An idle tick with nothing in flight must be a no-op.
+        let _ = update(&mut app, Msg::AnimTick);
+        assert_eq!(app.nav_reveal, None);
+    }
+
+    #[test]
+    fn picking_a_sub_item_jumps_straight_to_the_tool() {
+        let mut app = test_app();
+        app.page = Page::Home;
+
+        let _ = update(&mut app, Msg::FileTool(FileTool::Checksum));
+
+        assert_eq!(app.page, Page::Files);
+        assert_eq!(app.file_tool, FileTool::Checksum);
+
+        let _ = update(&mut app, Msg::DevTool(DevTool::Diff));
+        assert_eq!(app.page, Page::Developer);
+        assert_eq!(app.dev_tool, DevTool::Diff);
     }
 }

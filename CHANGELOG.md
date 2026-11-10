@@ -7,6 +7,10 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Collapsible sidebar sections** — "Files" and "Developer" are groups
+  now: the header slides out the tool sub-items (chevron + a short
+  reveal animation), and a sub-item jumps straight to that tool from
+  any page. Launching on a tool via `--renamer` & co. opens its group.
 - **Eight interface languages** — English, Русский, Українська,
   Español, Deutsch, Français, Português, Italiano. Translations live
   in editable JSON dictionaries (`native-ui/i18n/<code>.json`),

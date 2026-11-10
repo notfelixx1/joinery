@@ -452,23 +452,14 @@ fn logo(dark: bool) -> Element<'static, Msg> {
     .into()
 }
 
-fn nav_button(
+/// Shared style for sidebar buttons: active items sit on the active
+/// surface in the accent color, idle ones are muted and fill on hover.
+fn nav_btn_style(
     dark: bool,
-    icon: Element<'static, Msg>,
-    label: &str,
     active: bool,
-    msg: Msg,
-) -> Element<'static, Msg> {
+) -> impl Fn(&iced::Theme, button::Status) -> button::Style {
     let s = palette::scheme(dark);
-    let label = label.to_string();
-    button(
-        row![icon, text(label).size(13)]
-            .spacing(10)
-            .align_y(Alignment::Center),
-    )
-    .width(Length::Fill)
-    .padding([9, 12])
-    .style(move |_, status| {
+    move |_, status| {
         let mut st = button::Style {
             background: Some(if active {
                 s.surface_active.into()
@@ -497,41 +488,145 @@ fn nav_button(
             }
         }
         st
-    })
+    }
+}
+
+fn nav_button(
+    dark: bool,
+    icon: Element<'static, Msg>,
+    label: &str,
+    active: bool,
+    msg: Msg,
+) -> Element<'static, Msg> {
+    let label = label.to_string();
+    button(
+        row![icon, text(label).size(13)]
+            .spacing(10)
+            .align_y(Alignment::Center),
+    )
+    .width(Length::Fill)
+    .padding([9, 12])
+    .style(nav_btn_style(dark, active))
     .on_press(msg)
+    .into()
+}
+
+/// A sidebar section header: icon, label and a chevron that points
+/// into the group when it is collapsed and down when expanded.
+fn nav_header(
+    dark: bool,
+    icon: Element<'static, Msg>,
+    label: String,
+    expanded: bool,
+    active: bool,
+    msg: Msg,
+) -> Element<'static, Msg> {
+    let s = palette::scheme(dark);
+    let chevron = if expanded {
+        icons::chevron_down()
+    } else {
+        icons::chevron_right()
+    };
+    button(
+        row![
+            icon,
+            text(label).size(13),
+            iced::widget::horizontal_space(),
+            chevron
+                .width(Length::Fixed(14.0))
+                .height(Length::Fixed(14.0))
+                .style(move |_, _| iced::widget::svg::Style {
+                    color: Some(s.text_muted),
+                }),
+        ]
+        .spacing(10)
+        .align_y(Alignment::Center),
+    )
+    .width(Length::Fill)
+    .padding([9, 12])
+    .style(nav_btn_style(dark, active))
+    .on_press(msg)
+    .into()
+}
+
+/// An indented sub-item inside an expanded section.
+fn nav_sub_item(dark: bool, label: &str, active: bool, msg: Msg) -> Element<'static, Msg> {
+    let label = label.to_string();
+    iced::widget::container(
+        button(text(label).size(13))
+            .width(Length::Fill)
+            .padding([7, 10])
+            .style(nav_btn_style(dark, active))
+            .on_press(msg),
+    )
+    .padding(iced::Padding {
+        left: 34.0,
+        right: 2.0,
+        ..iced::Padding::default()
+    })
+    .width(Length::Fill)
+    .into()
+}
+
+/// A collapsible sidebar section. The sub-items slide out of (or back
+/// into) a clipped container whose height follows the reveal progress,
+/// which `AnimTick` advances.
+fn nav_section(
+    app: &App,
+    dark: bool,
+    page: Page,
+    key: &str,
+    icon: fn() -> Svg<'static>,
+    subs: &[(&str, Msg, bool)],
+) -> Element<'static, Msg> {
+    let open = app.nav_open == Some(page);
+    let active = app.page == page;
+
+    // Estimated geometry of the sub-item stack: a slight overshoot is
+    // invisible (transparent background), an undershoot would clip.
+    const ITEM_H: f32 = 33.0;
+    const SPACING: f32 = 4.0;
+    let full = subs.len() as f32 * ITEM_H + subs.len().saturating_sub(1) as f32 * SPACING;
+
+    let revealed = match &app.nav_reveal {
+        Some(reveal) if reveal.page == page => {
+            let k = if reveal.opening {
+                reveal.t
+            } else {
+                1.0 - reveal.t
+            };
+            k * full
+        }
+        _ if open => full,
+        _ => return column![].into(),
+    };
+
+    let mut sub_col = column![].spacing(SPACING);
+    for (label, msg, sub_active) in subs {
+        sub_col = sub_col.push(nav_sub_item(dark, label, *sub_active, msg.clone()));
+    }
+
+    column![
+        nav_header(
+            dark,
+            nav_icon(dark, active, icon()),
+            tr(app.lang, key).to_string(),
+            open,
+            active,
+            Msg::ToggleNav(page),
+        ),
+        iced::widget::container(sub_col)
+            .width(Length::Fill)
+            .height(Length::Fixed(revealed))
+            .clip(true),
+    ]
+    .spacing(4)
+    .width(Length::Fill)
     .into()
 }
 
 fn sidebar(app: &App) -> Element<'_, Msg> {
     let dark = app.dark;
-    let items = [
-        (Page::Home, "nav.home", icons::home as fn() -> Svg<'static>),
-        (
-            Page::Files,
-            "nav.files",
-            icons::folder as fn() -> Svg<'static>,
-        ),
-        (
-            Page::Developer,
-            "nav.developer",
-            icons::code as fn() -> Svg<'static>,
-        ),
-        (
-            Page::History,
-            "nav.history",
-            icons::clock as fn() -> Svg<'static>,
-        ),
-        (
-            Page::System,
-            "nav.system",
-            icons::monitor as fn() -> Svg<'static>,
-        ),
-        (
-            Page::Support,
-            "nav.support",
-            icons::heart as fn() -> Svg<'static>,
-        ),
-    ];
 
     let mut col = column![]
         .spacing(4)
@@ -561,7 +656,71 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         }),
     );
 
-    for (page, key, icon) in items {
+    col = col.push(nav_button(
+        dark,
+        nav_icon(dark, app.page == Page::Home, icons::home()),
+        tr(app.lang, "nav.home"),
+        app.page == Page::Home,
+        Msg::Nav(Page::Home),
+    ));
+
+    // "Files" and "Developer" are expandable groups: the header toggles
+    // the slide-out, the sub-items jump straight to a tool.
+    let files_subs: Vec<(&str, Msg, bool)> = FILE_TABS
+        .iter()
+        .map(|(tool, key)| {
+            (
+                tr(app.lang, key),
+                Msg::FileTool(*tool),
+                app.page == Page::Files && app.file_tool == *tool,
+            )
+        })
+        .collect();
+    col = col.push(nav_section(
+        app,
+        dark,
+        Page::Files,
+        "nav.files",
+        icons::folder,
+        &files_subs,
+    ));
+
+    let dev_subs: Vec<(&str, Msg, bool)> = DEV_TABS
+        .iter()
+        .map(|(tool, key)| {
+            (
+                tr(app.lang, key),
+                Msg::DevTool(*tool),
+                app.page == Page::Developer && app.dev_tool == *tool,
+            )
+        })
+        .collect();
+    col = col.push(nav_section(
+        app,
+        dark,
+        Page::Developer,
+        "nav.developer",
+        icons::code,
+        &dev_subs,
+    ));
+
+    for (page, key, icon) in [
+        (
+            Page::History,
+            "nav.history",
+            icons::clock as fn() -> Svg<'static>,
+        ),
+        (
+            Page::System,
+            "nav.system",
+            icons::monitor as fn() -> Svg<'static>,
+        ),
+        (
+            Page::Support,
+            "nav.support",
+            icons::heart as fn() -> Svg<'static>,
+        ),
+    ] {
         col = col.push(nav_button(
             dark,
             nav_icon(dark, app.page == page, icon()),
