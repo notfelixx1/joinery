@@ -29,12 +29,13 @@ accounts, no ads, no telemetry.
 | **Batch Renamer** | Rename hundreds of files with find/replace, prefix/suffix, numbering patterns (`photo_{n:3}`). Full preview, collision protection, one-click undo. |
 | **Duplicate Finder** | Find duplicate files by content (size → partial hash → full hash). Nothing is deleted without confirmation; files go to the trash. |
 | **Folder Analyzer** | See what is eating your disk space — per-folder sizes, largest files. |
-| **Checksum** | SHA-256, SHA-1 and MD5 hashes, streamed in 64 KiB chunks; verify against an expected hash. |
+| **Checksum** | SHA-256, SHA-1 and MD5 hashes, streamed with 1 MiB read buffers; verify against an expected hash. |
 | **JSON / YAML Validator** | Validate, pretty-print and minify with exact error positions. |
 | **Text Diff** | Line-by-line comparison of two texts or config files. |
 
-Also included: dark & light themes, English & Russian UI, SQLite-backed
-settings and undo journal.
+Also included: a History page with one-click undo of past renames,
+empty-state hints with recent folders, dark & light themes, English &
+Russian UI, SQLite-backed settings and undo journal.
 
 ## Screenshots
 
@@ -104,7 +105,7 @@ core/               Rust core library (joinery-tools)
 ├── src/safety/     path checks, preview, undo journal
 └── src/storage/    SQLite (settings + undo journal)
 native-ui/          iced frontend
-├── src/app.rs      state, messages, update loop
+├── src/app/        per-tool state, messages and update loops
 └── src/views/      tool views
 ```
 
@@ -145,7 +146,7 @@ pick whichever suits your project.
 корзину.
 
 **Монетизация:** весь функционал бесплатен. Разработка поддерживается
-добровольными донатами (GitHub Sponsors / Ko-fi / Buy Me a Coffee).
+добровольными донатами на [Ko-fi](https://ko-fi.com/notfst).
 
 ## Скачать
 

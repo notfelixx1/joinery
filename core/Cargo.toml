@@ -1,6 +1,6 @@
 [package]
 name = "joinery-tools"
-version = "0.1.0"
+version = "0.1.1"
 description = "Joinery Tools — one app. Everyday tools. No nonsense."
 authors = ["notfelixx1"]
 license = "MIT OR Apache-2.0"

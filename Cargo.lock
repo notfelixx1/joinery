@@ -1916,7 +1916,7 @@ dependencies = [
 
 [[package]]
 name = "joinery"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "dirs",
@@ -1931,7 +1931,7 @@ dependencies = [
 
 [[package]]
 name = "joinery-tools"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "dunce",
