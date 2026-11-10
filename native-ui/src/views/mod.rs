@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use iced::widget::{button, column, container, row, scrollable, svg::Svg, text};
 use iced::{Alignment, Color, Element, Length};
 
+use crate::app::NavReveal;
 use crate::app::{App, DevTool, FileTool, Msg, Page};
 use crate::i18n::{tr, Lang};
 use crate::icons;
@@ -568,9 +569,23 @@ fn nav_sub_item(dark: bool, label: &str, active: bool, msg: Msg) -> Element<'sta
     .into()
 }
 
-/// A collapsible sidebar section. The sub-items slide out of (or back
-/// into) a clipped container whose height follows the reveal progress,
-/// which `AnimTick` advances.
+/// Height of a section's sub-item stack in pixels: `full` when the
+/// section is open, animated while its reveal is in flight, 0 when it
+/// is collapsed. The header is always visible — only this stack moves.
+fn section_stack_height(open: bool, reveal: Option<&NavReveal>, page: Page, full: f32) -> f32 {
+    match reveal {
+        Some(r) if r.page == page => {
+            let k = if r.opening { r.t } else { 1.0 - r.t };
+            k * full
+        }
+        _ if open => full,
+        _ => 0.0,
+    }
+}
+
+/// A collapsible sidebar section. The header always renders; the
+/// sub-items slide out of (or back into) a clipped container whose
+/// height follows [`section_stack_height`], advanced by `AnimTick`.
 fn nav_section(
     app: &App,
     dark: bool,
@@ -582,47 +597,43 @@ fn nav_section(
     let open = app.nav_open == Some(page);
     let active = app.page == page;
 
-    // Estimated geometry of the sub-item stack: a slight overshoot is
-    // invisible (transparent background), an undershoot would clip.
-    const ITEM_H: f32 = 33.0;
+    // Estimated geometry of the sub-item stack, measured against the
+    // rendered sidebar: one item is ~40 px (a two-line label adds
+    // ~20 px — "Массовое переименование" wraps in Russian). The clip
+    // container may overshoot invisibly (transparent background) but
+    // an undershoot would cut off the last item.
+    const ITEM_H: f32 = 40.0;
+    const WRAP_SLACK: f32 = 20.0;
     const SPACING: f32 = 4.0;
-    let full = subs.len() as f32 * ITEM_H + subs.len().saturating_sub(1) as f32 * SPACING;
+    let full =
+        subs.len() as f32 * ITEM_H + subs.len().saturating_sub(1) as f32 * SPACING + WRAP_SLACK;
 
-    let revealed = match &app.nav_reveal {
-        Some(reveal) if reveal.page == page => {
-            let k = if reveal.opening {
-                reveal.t
-            } else {
-                1.0 - reveal.t
-            };
-            k * full
+    let mut section = column![nav_header(
+        dark,
+        nav_icon(dark, active, icon()),
+        tr(app.lang, key).to_string(),
+        open,
+        active,
+        Msg::ToggleNav(page),
+    ),]
+    .spacing(SPACING)
+    .width(Length::Fill);
+
+    let revealed = section_stack_height(open, app.nav_reveal.as_ref(), page, full);
+    if revealed > 0.0 {
+        let mut sub_col = column![].spacing(SPACING);
+        for (label, msg, sub_active) in subs {
+            sub_col = sub_col.push(nav_sub_item(dark, label, *sub_active, msg.clone()));
         }
-        _ if open => full,
-        _ => return column![].into(),
-    };
-
-    let mut sub_col = column![].spacing(SPACING);
-    for (label, msg, sub_active) in subs {
-        sub_col = sub_col.push(nav_sub_item(dark, label, *sub_active, msg.clone()));
+        section = section.push(
+            iced::widget::container(sub_col)
+                .width(Length::Fill)
+                .height(Length::Fixed(revealed))
+                .clip(true),
+        );
     }
 
-    column![
-        nav_header(
-            dark,
-            nav_icon(dark, active, icon()),
-            tr(app.lang, key).to_string(),
-            open,
-            active,
-            Msg::ToggleNav(page),
-        ),
-        iced::widget::container(sub_col)
-            .width(Length::Fill)
-            .height(Length::Fixed(revealed))
-            .clip(true),
-    ]
-    .spacing(4)
-    .width(Length::Fill)
-    .into()
+    section.into()
 }
 
 fn sidebar(app: &App) -> Element<'_, Msg> {
@@ -992,4 +1003,65 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     .width(Length::Fill)
     .height(Length::Fill)
     .into()
+}
+
+#[cfg(test)]
+mod nav_section_tests {
+    use crate::app::{NavReveal, Page};
+
+    use super::section_stack_height;
+
+    const FULL: f32 = 136.0;
+
+    fn reveal(page: Page, opening: bool, t: f32) -> Option<NavReveal> {
+        Some(NavReveal { page, opening, t })
+    }
+
+    #[test]
+    fn a_collapsed_section_hides_the_stack_but_keeps_the_header() {
+        // The header is rendered separately — this height of 0 must
+        // only collapse the sub-item stack (the regression that once
+        // swallowed the whole section, header included).
+        assert_eq!(section_stack_height(false, None, Page::Files, FULL), 0.0);
+    }
+
+    #[test]
+    fn an_open_section_shows_the_full_stack() {
+        assert_eq!(section_stack_height(true, None, Page::Files, FULL), FULL);
+    }
+
+    #[test]
+    fn the_reveal_animates_the_height_in_both_directions() {
+        let opening = reveal(Page::Files, true, 0.0);
+        assert_eq!(
+            section_stack_height(true, opening.as_ref(), Page::Files, FULL),
+            0.0
+        );
+        let half = reveal(Page::Files, true, 0.5);
+        assert_eq!(
+            section_stack_height(true, half.as_ref(), Page::Files, FULL),
+            FULL / 2.0
+        );
+        let closing = reveal(Page::Files, false, 0.5);
+        assert_eq!(
+            section_stack_height(false, closing.as_ref(), Page::Files, FULL),
+            FULL / 2.0
+        );
+        let almost = reveal(Page::Files, false, 0.99);
+        let h = section_stack_height(false, almost.as_ref(), Page::Files, FULL);
+        assert!(h > 0.0 && h < FULL / 2.0);
+    }
+
+    #[test]
+    fn another_sections_reveal_does_not_touch_this_stack() {
+        let other = reveal(Page::Developer, true, 0.5);
+        assert_eq!(
+            section_stack_height(true, other.as_ref(), Page::Files, FULL),
+            FULL
+        );
+        assert_eq!(
+            section_stack_height(false, other.as_ref(), Page::Files, FULL),
+            0.0
+        );
+    }
 }
