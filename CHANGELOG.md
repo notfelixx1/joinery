@@ -40,6 +40,16 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   "Copied" label on checksum results, and an undo confirmation dialog
   on the History page.
 
+### Fixed
+
+- **Security** — the bundled SQLite moved to 3.54.1 (`rusqlite` 0.41 →
+  `libsqlite3-sys` 0.39), closing CVE-2026-119375: a crafted `-wal`
+  file next to a database could make SQLite return uninitialized
+  page-cache memory in ordinary queries. The minimum build toolchain
+  is now Rust 1.89. The benchmark example also compiles on ARM64
+  again (the SHA-NI probe is gated by target architecture), which
+  unblocks the macOS CI job.
+
 ## [0.1.0] — 2026-11-05
 
 First public milestone: six quality tools instead of twenty half-made ones.

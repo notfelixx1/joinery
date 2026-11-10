@@ -81,7 +81,7 @@ python scripts/bench_chart.py bench.json docs/benchmarks.png
 
 ## Building from source
 
-Requirements: [Rust](https://rustup.rs) 1.77+ and the usual platform build
+Requirements: [Rust](https://rustup.rs) 1.89+ and the usual platform build
 prerequisites for `iced` / `tiny-skia`.
 
 ```bash
@@ -156,7 +156,7 @@ Windows, Linux и macOS, к каждому релизу.
 
 ## Сборка из исходников
 
-Требования: [Rust](https://rustup.rs) 1.77+.
+Требования: [Rust](https://rustup.rs) 1.89+.
 
 ```bash
 cargo build --release -p joinery

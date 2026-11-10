@@ -18,7 +18,7 @@ iced = { version = "0.13", default-features = false, features = ["tiny-skia", "t
 tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 rfd = "0.15"
 dirs = "5"
-rusqlite = "0.32"
+rusqlite = "0.41"
 chrono = "0.4"
 open = "5"
 

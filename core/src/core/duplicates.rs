@@ -105,7 +105,7 @@ pub fn find_duplicates(
         }
         by_size.entry(size).or_default().push(entry.into_path());
         scanned += 1;
-        if scanned % 500 == 0 {
+        if scanned.is_multiple_of(500) {
             progress(scanned);
         }
     }
