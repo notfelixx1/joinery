@@ -9,11 +9,13 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use joinery_tools::core::analyzer::analyze_folder;
 use joinery_tools::core::checksum::{hash_bytes, hash_file, Algorithm};
 use joinery_tools::core::duplicates::find_duplicates;
 use joinery_tools::core::renamer::{apply_plan, plan_rename, RenameOptions};
+use joinery_tools::core::text_diff::{diff_texts, DiffKind};
 use joinery_tools::safety::undo::undo_records;
 
 /// Deterministic pseudo-random bytes (fast, no dependency). Distinct
@@ -258,4 +260,61 @@ fn analyzer_byte_accounting_matches_actual_file_sizes() {
         }
         let _ = entry;
     }
+}
+
+// ---------- text diff: reconstruction is the bitwise guarantee ----------
+
+/// 20 000 lines; every 20th line differs by `salt` — two texts with
+/// different salts share 19 000 identical lines and differ on 2 000.
+fn pseudo_lines(count: usize, salt: u8) -> String {
+    let mut out = String::with_capacity(count * 40);
+    for i in 0..count {
+        if i % 20 == salt as usize {
+            out.push_str(&format!("line {i} changed-{salt} value {}\n", i * 7));
+        } else {
+            out.push_str(&format!("line {i} value {}\n", i * 7));
+        }
+    }
+    out
+}
+
+#[test]
+fn diff_rows_rebuild_both_texts_bitwise() {
+    // 20 000 lines with 1 000 scattered swaps. Regardless of where the
+    // algorithm places the edit points, the rows must rebuild BOTH texts
+    // line-for-line — that is the bitwise guarantee of the diff.
+    let old_text = pseudo_lines(20_000, 0);
+    let new_text = pseudo_lines(20_000, 1);
+
+    let started = Instant::now();
+    let result = diff_texts(&old_text, &new_text);
+    let elapsed = started.elapsed();
+
+    let mut rebuilt_old = Vec::with_capacity(20_000);
+    let mut rebuilt_new = Vec::with_capacity(20_000);
+    for row in &result.rows {
+        match row.kind {
+            DiffKind::Equal => {
+                rebuilt_old.push(row.text.as_str());
+                rebuilt_new.push(row.text.as_str());
+            }
+            DiffKind::Delete => rebuilt_old.push(row.text.as_str()),
+            DiffKind::Add => rebuilt_new.push(row.text.as_str()),
+        }
+    }
+    let old_lines: Vec<&str> = old_text.lines().collect();
+    let new_lines: Vec<&str> = new_text.lines().collect();
+    assert_eq!(rebuilt_old, old_lines, "rows must rebuild the old text");
+    assert_eq!(rebuilt_new, new_lines, "rows must rebuild the new text");
+
+    // Stats must account for every single row.
+    assert_eq!(
+        result.stats.added + result.stats.removed + result.stats.unchanged,
+        result.rows.len(),
+        "stats cover all rows"
+    );
+    println!(
+        "diff 20 000 lines: {elapsed:?} ({:.1} µs/line)",
+        elapsed.as_micros() as f64 / 20_000.0
+    );
 }
