@@ -34,8 +34,10 @@ accounts, no ads, no telemetry.
 | **Text Diff** | Line-by-line comparison of two texts or config files. |
 
 Also included: a History page with one-click undo of past renames,
-empty-state hints with recent folders, dark & light themes, English &
-Russian UI, SQLite-backed settings and undo journal.
+empty-state hints with recent folders, dark & light themes, an
+interface in eight languages (English, Русский, Українська, Español,
+Deutsch, Français, Português, Italiano), SQLite-backed settings and
+undo journal.
 
 ## Screenshots
 

@@ -1,333 +1,139 @@
-//! EN/RU strings — ported from the Svelte frontend's i18n.js dictionary.
+//! Interface translations.
+//!
+//! Dictionaries live in `native-ui/i18n/<code>.json` — flat
+//! `"key": "translated text"` maps (placeholders in the user's sense:
+//! every UI string is addressed by a stable key like `nav.support`
+//! and resolved to the language's text at render time). Variables
+//! inside a value, such as `{n}`, are substituted afterwards by
+//! [`fmt`]. The files are embedded into the binary at compile time
+//! and parsed once on first use; missing keys fall back to English.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use std::collections::HashMap;
+use std::sync::OnceLock;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Lang {
     En,
     Ru,
+    Uk,
+    Es,
+    De,
+    Fr,
+    Pt,
+    It,
 }
 
 impl Lang {
-    pub fn toggle(self) -> Lang {
+    /// Every supported language, in picker order.
+    pub const ALL: [Lang; 8] = [
+        Lang::En,
+        Lang::Ru,
+        Lang::Uk,
+        Lang::Es,
+        Lang::De,
+        Lang::Fr,
+        Lang::Pt,
+        Lang::It,
+    ];
+
+    /// Lowercase code used on the CLI, in SQLite and in the file names.
+    pub fn code(self) -> &'static str {
         match self {
-            Lang::En => Lang::Ru,
-            Lang::Ru => Lang::En,
+            Lang::En => "en",
+            Lang::Ru => "ru",
+            Lang::Uk => "uk",
+            Lang::Es => "es",
+            Lang::De => "de",
+            Lang::Fr => "fr",
+            Lang::Pt => "pt",
+            Lang::It => "it",
+        }
+    }
+
+    /// The language's own name, for the picker.
+    pub fn native_name(self) -> &'static str {
+        match self {
+            Lang::En => "English",
+            Lang::Ru => "Русский",
+            Lang::Uk => "Українська",
+            Lang::Es => "Español",
+            Lang::De => "Deutsch",
+            Lang::Fr => "Français",
+            Lang::Pt => "Português",
+            Lang::It => "Italiano",
         }
     }
 
     pub fn from_str(value: &str) -> Lang {
         match value {
             "ru" => Lang::Ru,
+            "uk" => Lang::Uk,
+            "es" => Lang::Es,
+            "de" => Lang::De,
+            "fr" => Lang::Fr,
+            "pt" => Lang::Pt,
+            "it" => Lang::It,
             _ => Lang::En,
         }
     }
 }
 
-static EN: &[(&str, &str)] = &[
-    ("app.tagline", "One app. Everyday tools. No nonsense."),
-    ("nav.home", "Home"),
-    ("nav.files", "File Tools"),
-    ("nav.developer", "Developer Tools"),
-    ("nav.system", "System"),
-    ("nav.support", "Support"),
-    ("home.hero.title", "Everyday tools, done right"),
-    (
-        "home.hero.subtitle",
-        "Six quality instruments instead of ten random utilities. Everything runs on your device — no internet, no accounts, no ads.",
-    ),
-    ("home.badges.offline", "100% offline"),
-    ("home.badges.privacy", "No telemetry"),
-    ("home.badges.free", "Free & open source"),
-    ("home.tools.title", "What's inside"),
-    ("tool.renamer", "Batch Renamer"),
-    ("tool.renamer.desc", "Rename hundreds of files with a safe preview and one-click undo."),
-    ("tool.duplicates", "Duplicate Finder"),
-    ("tool.duplicates.desc", "Find duplicate files by content. Deletion goes to the trash, only after confirmation."),
-    ("tool.analyzer", "Folder Analyzer"),
-    ("tool.analyzer.desc", "See what is eating your disk space, folder by folder."),
-    ("tool.checksum", "Checksum"),
-    ("tool.checksum.desc", "SHA-256, SHA-1 and MD5 hashes for any files."),
-    ("tool.jsonyaml", "JSON / YAML Validator"),
-    ("tool.jsonyaml.desc", "Validate, format and minify JSON and YAML with precise error positions."),
-    ("tool.diff", "Text Diff"),
-    ("tool.diff.desc", "Compare two texts or config files line by line."),
-    ("common.chooseFolder", "Choose folder…"),
-    ("common.chooseFiles", "Choose files…"),
-    ("common.preview", "Preview"),
-    ("common.apply", "Apply"),
-    ("common.undo", "Undo"),
-    ("common.scan", "Scan"),
-    ("common.analyze", "Analyze"),
-    ("common.compute", "Compute"),
-    ("common.compare", "Compare"),
-    ("common.validate", "Validate"),
-    ("common.format", "Format"),
-    ("common.minify", "Minify"),
-    ("common.copy", "Copy"),
-    ("common.clear", "Clear"),
-    ("common.example", "Example"),
-    ("common.loading", "Working…"),
-    ("common.error", "Error"),
-    ("common.noResults", "Nothing found"),
-    ("common.name", "Name"),
-    ("common.status", "Status"),
-    ("common.files", "files"),
-    ("common.folders", "folders"),
-    ("renamer.find", "Find"),
-    ("renamer.replace", "Replace with"),
-    ("renamer.prefix", "Prefix"),
-    ("renamer.suffix", "Suffix"),
-    ("renamer.newExt", "New extension"),
-    ("renamer.pattern", "Pattern (optional)"),
-    ("renamer.pattern.hint", "Tokens: {name}, {ext}, {n}, {n:3} — e.g. photo_{n:3}"),
-    ("renamer.subfolders", "Include subfolders"),
-    ("renamer.allowOverwrite", "Allow overwriting existing files"),
-    ("renamer.plan", "Preview of changes"),
-    ("renamer.applyDone", "Renamed: {applied} · Skipped: {skipped}"),
-    ("renamer.undoDone", "Undone: {n} of {total}"),
-    ("renamer.pickFolderFirst", "Choose a folder first"),
-    ("renamer.status.ready", "Ready"),
-    ("renamer.status.caseOnly", "Case-only change"),
-    ("renamer.status.nochange", "No change"),
-    ("renamer.status.targetExists", "Target exists"),
-    ("renamer.status.batchDuplicate", "Duplicate target"),
-    ("renamer.status.invalidName", "Invalid name"),
-    ("dup.minSize", "Min size (bytes)"),
-    ("dup.scanning", "Scanning… {n} files"),
-    ("dup.groups", "duplicate groups"),
-    ("dup.wasted", "wasted space"),
-    ("dup.scanned", "files scanned"),
-    ("dup.keepHint", "Unchecked files will be moved to the trash."),
-    ("dup.deleteSelected", "Delete selected ({n}) → Trash"),
-    ("dup.confirm", "Move {n} file(s) to the system trash? They can be restored from the trash, but not via Joinery."),
-    ("dup.deleted", "Moved to trash: {deleted} · Failed: {failed}"),
-    ("dup.skipped", "skipped"),
-    ("analyzer.totalSize", "Total size"),
-    ("analyzer.largest", "Largest files"),
-    ("analyzer.entries", "Folder contents"),
-    ("analyzer.link", "link"),
-    ("checksum.algorithm", "Algorithm"),
-    ("checksum.verify", "Verify against expected hash"),
-    ("checksum.verify.hint", "Paste a hash"),
-    ("checksum.match", "Match"),
-    ("checksum.mismatch", "Mismatch"),
-    ("dev.jsonyaml", "JSON / YAML"),
-    ("dev.diff", "Text Diff"),
-    ("dev.input", "Input"),
-    ("dev.output", "Result"),
-    ("dev.valid", "Valid {kind}"),
-    ("dev.invalid", "Invalid {kind}"),
-    ("dev.errorAt", "Line {line}, column {column}"),
-    ("dev.oldText", "Original text"),
-    ("dev.newText", "Changed text"),
-    ("dev.loadFile", "Load file"),
-    ("dev.added", "+{n} added"),
-    ("dev.removed", "−{n} removed"),
-    ("dev.unchanged", "{n} unchanged"),
-    ("system.info", "About this device"),
-    ("system.os", "Operating system"),
-    ("system.arch", "Architecture"),
-    ("system.version", "App version"),
-    ("system.coming", "Process viewer, network info and battery status arrive in Joinery 0.2 — the core tools come first."),
-    ("support.title", "Support Joinery"),
-    ("support.subtitle", "Help keep useful software free."),
-    ("support.amountNote", "One-time contribution"),
-    ("support.point1", "Fix bugs and add features."),
-    ("support.point2", "Test on different operating systems."),
-    ("support.point3", "Keep the software free and independent."),
-    ("support.noPressure", "No subscriptions. No locked features. No pressure. The app is fully functional without donating."),
-    ("footer.license", "Open source · MIT OR Apache-2.0"),
-    ("nav.history", "History"),
-    ("history.date", "When"),
-    ("history.operation", "Operation"),
-    ("history.files", "{n} files"),
-    ("history.undone", "Undone"),
-    (
-        "history.empty",
-        "Nothing here yet — history appears after the first batch rename.",
-    ),
-    ("empty.recent", "Recent"),
-    (
-        "empty.renamer.hint",
-        "Pick a folder — see a preview of every rename before anything changes.",
-    ),
-    ("empty.duplicates.hint", "Pick a folder — I'll find duplicate files by content."),
-    ("empty.analyzer.hint", "Pick a folder — see what eats your disk space."),
-    ("empty.checksum.hint", "Pick files — get their SHA-256, SHA-1 or MD5 hashes."),
-    ("lang.toggle", "Switch language"),
-    ("theme.toggle", "Toggle theme"),
-    ("common.copied", "Copied"),
-    (
-        "history.confirm",
-        "Undo the renaming of {n} file(s)? The names go back to what they were.",
-    ),
-    (
-        "renamer.allowOverwrite.hint",
-        "When checked, existing targets are replaced.",
-    ),
-    (
-        "diff.giantConfirm",
-        "Giant diff: {n} lines. Building it may take a while and use a lot of memory. Continue?",
-    ),
+/// The language's own name — also what the pick_list renders.
+impl std::fmt::Display for Lang {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.native_name())
+    }
+}
+
+/// `(language, embedded dictionary file)`.
+const DICTIONARIES: &[(Lang, &str)] = &[
+    (Lang::En, include_str!("../i18n/en.json")),
+    (Lang::Ru, include_str!("../i18n/ru.json")),
+    (Lang::Uk, include_str!("../i18n/uk.json")),
+    (Lang::Es, include_str!("../i18n/es.json")),
+    (Lang::De, include_str!("../i18n/de.json")),
+    (Lang::Fr, include_str!("../i18n/fr.json")),
+    (Lang::Pt, include_str!("../i18n/pt.json")),
+    (Lang::It, include_str!("../i18n/it.json")),
 ];
 
-static RU: &[(&str, &str)] = &[
-    ("app.tagline", "Одна программа. Повседневные инструменты. Без лишнего."),
-    ("nav.home", "Главная"),
-    ("nav.files", "Файлы"),
-    ("nav.developer", "Разработчику"),
-    ("nav.system", "Система"),
-    ("nav.support", "Поддержка"),
-    ("home.hero.title", "Повседневные инструменты, сделанные как надо"),
-    (
-        "home.hero.subtitle",
-        "Шесть качественных инструментов вместо десяти случайных утилит. Всё работает на вашем устройстве — без интернета, аккаунтов и рекламы.",
-    ),
-    ("home.badges.offline", "100% офлайн"),
-    ("home.badges.privacy", "Без телеметрии"),
-    ("home.badges.free", "Бесплатно, open source"),
-    ("home.tools.title", "Что внутри"),
-    ("tool.renamer", "Массовое переименование"),
-    ("tool.renamer.desc", "Переименование сотен файлов с безопасным предпросмотром и отменой в один клик."),
-    ("tool.duplicates", "Поиск дубликатов"),
-    ("tool.duplicates.desc", "Поиск копий файлов по содержимому. Удаление — только после подтверждения и в корзину."),
-    ("tool.analyzer", "Анализ папок"),
-    ("tool.analyzer.desc", "Покажет, что занимает место на диске, папка за папкой."),
-    ("tool.checksum", "Контрольные суммы"),
-    ("tool.checksum.desc", "Хеши SHA-256, SHA-1 и MD5 для любых файлов."),
-    ("tool.jsonyaml", "JSON / YAML валидатор"),
-    ("tool.jsonyaml.desc", "Проверка, форматирование и минификация JSON и YAML с точным указанием ошибок."),
-    ("tool.diff", "Сравнение текстов"),
-    ("tool.diff.desc", "Построчное сравнение двух текстов или конфигурационных файлов."),
-    ("common.chooseFolder", "Выбрать папку…"),
-    ("common.chooseFiles", "Выбрать файлы…"),
-    ("common.preview", "Предпросмотр"),
-    ("common.apply", "Применить"),
-    ("common.undo", "Отменить"),
-    ("common.scan", "Сканировать"),
-    ("common.analyze", "Анализировать"),
-    ("common.compute", "Вычислить"),
-    ("common.compare", "Сравнить"),
-    ("common.validate", "Проверить"),
-    ("common.format", "Форматировать"),
-    ("common.minify", "Минифицировать"),
-    ("common.copy", "Копировать"),
-    ("common.clear", "Очистить"),
-    ("common.example", "Пример"),
-    ("common.loading", "Работаю…"),
-    ("common.error", "Ошибка"),
-    ("common.noResults", "Ничего не найдено"),
-    ("common.name", "Имя"),
-    ("common.status", "Статус"),
-    ("common.files", "файлов"),
-    ("common.folders", "папок"),
-    ("renamer.find", "Найти"),
-    ("renamer.replace", "Заменить на"),
-    ("renamer.prefix", "Префикс"),
-    ("renamer.suffix", "Суффикс"),
-    ("renamer.newExt", "Новое расширение"),
-    ("renamer.pattern", "Шаблон (необязательно)"),
-    ("renamer.pattern.hint", "Токены: {name}, {ext}, {n}, {n:3} — например photo_{n:3}"),
-    ("renamer.subfolders", "Включая подпапки"),
-    ("renamer.allowOverwrite", "Разрешить перезапись существующих файлов"),
-    ("renamer.plan", "Предпросмотр изменений"),
-    ("renamer.applyDone", "Переименовано: {applied} · Пропущено: {skipped}"),
-    ("renamer.undoDone", "Восстановлено: {n} из {total}"),
-    ("renamer.pickFolderFirst", "Сначала выберите папку"),
-    ("renamer.status.ready", "Готово"),
-    ("renamer.status.caseOnly", "Смена регистра"),
-    ("renamer.status.nochange", "Без изменений"),
-    ("renamer.status.targetExists", "Имя занято"),
-    ("renamer.status.batchDuplicate", "Дубль в пакете"),
-    ("renamer.status.invalidName", "Недопустимое имя"),
-    ("dup.minSize", "Мин. размер (байт)"),
-    ("dup.scanning", "Сканирую… {n} файлов"),
-    ("dup.groups", "групп дубликатов"),
-    ("dup.wasted", "потерянного места"),
-    ("dup.scanned", "файлов проверено"),
-    ("dup.keepHint", "Файлы без галочки будут перемещены в корзину."),
-    ("dup.deleteSelected", "Удалить выбранные ({n}) → в корзину"),
-    ("dup.confirm", "Переместить {n} файл(ов) в системную корзину? Их можно восстановить из корзины, но не через Joinery."),
-    ("dup.deleted", "В корзину: {deleted} · Не удалось: {failed}"),
-    ("dup.skipped", "пропущено"),
-    ("analyzer.totalSize", "Общий размер"),
-    ("analyzer.largest", "Самые большие файлы"),
-    ("analyzer.entries", "Содержимое папки"),
-    ("analyzer.link", "ссылка"),
-    ("checksum.algorithm", "Алгоритм"),
-    ("checksum.verify", "Сверить с ожидаемым хешем"),
-    ("checksum.verify.hint", "Вставьте хеш"),
-    ("checksum.match", "Совпадает"),
-    ("checksum.mismatch", "Не совпадает"),
-    ("dev.jsonyaml", "JSON / YAML"),
-    ("dev.diff", "Сравнение текстов"),
-    ("dev.input", "Ввод"),
-    ("dev.output", "Результат"),
-    ("dev.valid", "Корректный {kind}"),
-    ("dev.invalid", "Ошибка в {kind}"),
-    ("dev.errorAt", "Строка {line}, столбец {column}"),
-    ("dev.oldText", "Исходный текст"),
-    ("dev.newText", "Изменённый текст"),
-    ("dev.loadFile", "Загрузить файл"),
-    ("dev.added", "+{n} добавлено"),
-    ("dev.removed", "−{n} удалено"),
-    ("dev.unchanged", "{n} без изменений"),
-    ("system.info", "Об этом устройстве"),
-    ("system.os", "Операционная система"),
-    ("system.arch", "Архитектура"),
-    ("system.version", "Версия программы"),
-    ("system.coming", "Просмотр процессов, сетевые данные и состояние батареи появятся в Joinery 0.2 — сначала ядро основных инструментов."),
-    ("support.title", "Поддержать Joinery"),
-    ("support.subtitle", "Помогите сохранить полезные программы бесплатными."),
-    ("support.amountNote", "Разовое содействие"),
-    ("support.point1", "Исправлять ошибки и добавлять функции."),
-    ("support.point2", "Тестировать на разных операционных системах."),
-    ("support.point3", "Сохранять программу бесплатной и независимой."),
-    ("support.noPressure", "Никаких подписок, заблокированных функций и давления. Программа полностью работает без донатов."),
-    ("footer.license", "Открытый код · MIT OR Apache-2.0"),
-    ("nav.history", "История"),
-    ("history.date", "Когда"),
-    ("history.operation", "Операция"),
-    ("history.files", "{n} файл(ов)"),
-    ("history.undone", "Отменено"),
-    (
-        "history.empty",
-        "Пока пусто — история появится после первой операции переименования.",
-    ),
-    ("empty.recent", "Недавние"),
-    (
-        "empty.renamer.hint",
-        "Выберите папку — покажу предпросмотр каждого переименования до любых изменений.",
-    ),
-    ("empty.duplicates.hint", "Выберите папку — найду дубликаты файлов по содержимому."),
-    ("empty.analyzer.hint", "Выберите папку — покажу, что занимает место на диске."),
-    ("empty.checksum.hint", "Выберите файлы — посчитаю хеши SHA-256, SHA-1 или MD5."),
-    ("lang.toggle", "Сменить язык"),
-    ("theme.toggle", "Переключить тему"),
-    ("common.copied", "Скопировано"),
-    (
-        "history.confirm",
-        "Отменить переименование {n} файл(ов)? Имена вернутся к исходным.",
-    ),
-    (
-        "renamer.allowOverwrite.hint",
-        "Если включено — существующие цели будут заменены.",
-    ),
-    (
-        "diff.giantConfirm",
-        "Гигантский дифф: {n} строк. Построение может занять время и память. Продолжить?",
-    ),
-];
+type Table = HashMap<&'static str, &'static str>;
 
-/// Translate a key for the given language; unknown keys render as empty.
+/// Parse every dictionary once and leak it — the strings live for the
+/// whole process, so `tr` can hand out `&'static str` without cloning.
+fn tables() -> &'static HashMap<Lang, Table> {
+    static TABLES: OnceLock<HashMap<Lang, Table>> = OnceLock::new();
+    TABLES.get_or_init(|| {
+        DICTIONARIES
+            .iter()
+            .map(|(lang, json)| {
+                let parsed: HashMap<String, String> = serde_json::from_str(json)
+                    .unwrap_or_else(|err| panic!("i18n/{}.json is invalid: {err}", lang.code()));
+                let leaked = parsed
+                    .into_iter()
+                    .map(|(k, v)| {
+                        // `Box::leak` yields `&mut str`; the immutable
+                        // bindings below reborrow it as `&'static str`.
+                        let key: &'static str = Box::leak(k.into_boxed_str());
+                        let value: &'static str = Box::leak(v.into_boxed_str());
+                        (key, value)
+                    })
+                    .collect();
+                (*lang, leaked)
+            })
+            .collect()
+    })
+}
+
+/// Translate a key for the given language. Keys missing from a
+/// dictionary fall back to English; unknown keys render as empty.
 pub fn tr(lang: Lang, key: &str) -> &'static str {
-    let table = match lang {
-        Lang::En => EN,
-        Lang::Ru => RU,
-    };
-    table
-        .iter()
-        .find(|(k, _)| *k == key)
-        .map(|(_, v)| *v)
+    let tables = tables();
+    tables
+        .get(&lang)
+        .and_then(|table| table.get(key))
+        .copied()
+        .or_else(|| tables[&Lang::En].get(key).copied())
         .unwrap_or("")
 }
 
@@ -338,4 +144,102 @@ pub fn fmt(template: &str, vars: &[(&str, String)]) -> String {
         out = out.replace(&format!("{{{name}}}"), value);
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `{token}` placeholders used by `fmt`, extracted in order.
+    fn placeholders(value: &str) -> Vec<String> {
+        let bytes: Vec<char> = value.chars().collect();
+        let mut found = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i] == '{' {
+                if let Some(end) = bytes[i..].iter().position(|c| *c == '}') {
+                    found.push(bytes[i + 1..i + end].iter().collect());
+                    i += end;
+                }
+            }
+            i += 1;
+        }
+        found
+    }
+
+    fn en() -> &'static Table {
+        &tables()[&Lang::En]
+    }
+
+    #[test]
+    fn every_language_covers_exactly_the_english_keys() {
+        let en_keys: Vec<_> = en().keys().copied().collect();
+        assert_eq!(en_keys.len(), 126, "English dictionary size");
+        for lang in Lang::ALL {
+            let table = &tables()[&lang];
+            for key in &en_keys {
+                assert!(
+                    table.contains_key(key),
+                    "{} misses the key {key}",
+                    lang.code()
+                );
+            }
+            for key in table.keys() {
+                assert!(
+                    en().contains_key(key),
+                    "{} has the extra key {key}",
+                    lang.code()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn no_dictionary_value_is_empty() {
+        for lang in Lang::ALL {
+            for (key, value) in &tables()[&lang] {
+                assert!(!value.trim().is_empty(), "{}: {key} is empty", lang.code());
+            }
+        }
+    }
+
+    #[test]
+    fn placeholders_match_english_in_every_language() {
+        // fmt() substitutes named variables — a language may reorder
+        // them, but none may be lost or invented.
+        for lang in Lang::ALL {
+            for (key, en_value) in en() {
+                let translated = tables()[&lang].get(key).expect("key parity");
+                let mut expected = placeholders(en_value);
+                let mut actual = placeholders(translated);
+                expected.sort();
+                actual.sort();
+                assert_eq!(
+                    expected,
+                    actual,
+                    "{}: {key} placeholders differ",
+                    lang.code()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn language_codes_round_trip() {
+        for lang in Lang::ALL {
+            assert_eq!(Lang::from_str(lang.code()), lang);
+            assert_eq!(Lang::from_str(lang.native_name()), Lang::En);
+        }
+        assert_eq!(Lang::from_str("unknown"), Lang::En);
+    }
+
+    #[test]
+    fn translation_and_formatting_work() {
+        assert_eq!(tr(Lang::En, "nav.home"), "Home");
+        assert_eq!(tr(Lang::Ru, "nav.home"), "Главная");
+        assert_eq!(tr(Lang::De, "nav.home"), "Start");
+        assert_eq!(tr(Lang::En, "no.such.key"), "");
+        let filled = fmt(tr(Lang::En, "history.files"), &[("n", "3".to_string())]);
+        assert_eq!(filled, "3 files");
+    }
 }

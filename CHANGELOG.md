@@ -3,6 +3,21 @@
 All notable changes to Joinery Tools are documented here.
 Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **Eight interface languages** — English, Русский, Українська,
+  Español, Deutsch, Français, Português, Italiano. Translations live
+  in editable JSON dictionaries (`native-ui/i18n/<code>.json`),
+  picked in the top bar or via `--lang`; tests enforce that every
+  language covers all keys and keeps the `{var}` placeholders.
+
+### Fixed
+
+- The footer version comes from the crate version instead of a
+  hardcoded string that stayed at 0.1.0 after the release bump.
+
 ## [0.1.1] — 2026-11-10
 
 ### Added

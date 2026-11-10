@@ -17,7 +17,7 @@ use iced::widget::{button, column, container, row, scrollable, svg::Svg, text};
 use iced::{Alignment, Color, Element, Length};
 
 use crate::app::{App, DevTool, FileTool, Msg, Page};
-use crate::i18n::tr;
+use crate::i18n::{tr, Lang};
 use crate::icons;
 use crate::palette;
 
@@ -578,7 +578,9 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
             text(tr(app.lang, "footer.license"))
                 .size(12)
                 .style(muted(dark)),
-            text("v0.1.0").size(12).style(muted(dark)),
+            text(format!("v{}", env!("CARGO_PKG_VERSION")))
+                .size(12)
+                .style(muted(dark)),
         ]
         .spacing(2)
         .padding(iced::Padding {
@@ -609,15 +611,9 @@ fn topbar(app: &App) -> Element<'_, Msg> {
     row![
         text(tr(app.lang, title_key)).size(20),
         iced::widget::horizontal_space(),
-        iced::widget::tooltip(
-            icon_btn(
-                app.dark,
-                topbar_icon(app.dark, icons::globe()),
-                Msg::ToggleLang
-            ),
-            text(tr(app.lang, "lang.toggle")).size(12),
-            iced::widget::tooltip::Position::Bottom,
-        ),
+        iced::widget::pick_list(Lang::ALL, Some(app.lang), Msg::SetLang)
+            .text_size(12)
+            .width(Length::Shrink),
         iced::widget::tooltip(
             icon_btn(
                 app.dark,

@@ -15,6 +15,7 @@ path = "src/main.rs"
 joinery-tools = { path = "../core" }
 
 iced = { version = "0.13", default-features = false, features = ["tiny-skia", "tokio", "svg"] }
+serde_json = "1"
 tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 rfd = "0.15"
 dirs = "5"

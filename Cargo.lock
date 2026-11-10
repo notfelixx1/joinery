@@ -1934,6 +1934,7 @@ dependencies = [
  "open",
  "rfd",
  "rusqlite",
+ "serde_json",
  "tempfile",
  "tokio",
 ]

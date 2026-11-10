@@ -63,7 +63,7 @@ pub enum Msg {
     FileTool(FileTool),
     DevTool(DevTool),
     ToggleTheme,
-    ToggleLang,
+    SetLang(Lang),
     OpenUrl(&'static str),
 
     Renamer(renamer::Msg),
@@ -127,7 +127,7 @@ Open directly on a tool:
 
 Options:
   --dark | --light    Theme (overrides the saved one)
-  --lang en|ru        Interface language
+  --lang en|ru|uk|es|de|fr|pt|it    Interface language
   --folder <path>     Preselect a folder for the file tool
   --help              Show this text
 ";
@@ -286,16 +286,9 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             persist_settings(&app.db, "theme", if app.dark { "dark" } else { "light" });
             Task::none()
         }
-        Msg::ToggleLang => {
-            app.lang = app.lang.toggle();
-            persist_settings(
-                &app.db,
-                "lang",
-                match app.lang {
-                    Lang::En => "en",
-                    Lang::Ru => "ru",
-                },
-            );
+        Msg::SetLang(lang) => {
+            app.lang = lang;
+            persist_settings(&app.db, "lang", lang.code());
             Task::none()
         }
         Msg::OpenUrl(url) => {
