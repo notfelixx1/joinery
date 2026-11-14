@@ -561,7 +561,7 @@ fn nav_sub_item(dark: bool, label: &str, active: bool, msg: Msg) -> Element<'sta
             .on_press(msg),
     )
     .padding(iced::Padding {
-        left: 34.0,
+        left: 20.0,
         right: 2.0,
         ..iced::Padding::default()
     })
@@ -569,9 +569,11 @@ fn nav_sub_item(dark: bool, label: &str, active: bool, msg: Msg) -> Element<'sta
     .into()
 }
 
-/// Height of a section's sub-item stack in pixels: `full` when the
-/// section is open, animated while its reveal is in flight, 0 when it
-/// is collapsed. The header is always visible — only this stack moves.
+/// Height of a section's sub-item stack in pixels while its reveal is
+/// in flight: the estimate scales with the animation progress `t`,
+/// opening or closing. Used only during the slide — at rest the stack
+/// takes its natural content height, so nothing is ever clipped and no
+/// dead gap appears below the last item.
 fn section_stack_height(open: bool, reveal: Option<&NavReveal>, page: Page, full: f32) -> f32 {
     match reveal {
         Some(r) if r.page == page => {
@@ -583,9 +585,25 @@ fn section_stack_height(open: bool, reveal: Option<&NavReveal>, page: Page, full
     }
 }
 
+/// Subtle card behind an expanded section's sub-items — the group reads
+/// as one block instead of items floating over empty space.
+fn nav_group_block(dark: bool) -> container::Style {
+    let s = palette::scheme(dark);
+    container::Style {
+        background: Some(s.surface.into()),
+        border: iced::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: 8.0.into(),
+        },
+        shadow: Default::default(),
+        ..container::Style::default()
+    }
+}
+
 /// A collapsible sidebar section. The header always renders; the
-/// sub-items slide out of (or back into) a clipped container whose
-/// height follows [`section_stack_height`], advanced by `AnimTick`.
+/// sub-items sit on a tinted block and slide out of (or back into) a
+/// clipped container during the reveal, which `AnimTick` advances.
 fn nav_section(
     app: &App,
     dark: bool,
@@ -596,12 +614,13 @@ fn nav_section(
 ) -> Element<'static, Msg> {
     let open = app.nav_open == Some(page);
     let active = app.page == page;
+    let reveal = app.nav_reveal.as_ref().filter(|r| r.page == page);
 
     // Estimated geometry of the sub-item stack, measured against the
     // rendered sidebar: one item is ~40 px (a two-line label adds
-    // ~20 px — "Массовое переименование" wraps in Russian). The clip
-    // container may overshoot invisibly (transparent background) but
-    // an undershoot would cut off the last item.
+    // ~20 px — "Массовое переименование" wraps in Russian). The estimate
+    // only drives the moving clip during the slide; at rest the stack
+    // keeps its natural height.
     const ITEM_H: f32 = 40.0;
     const WRAP_SLACK: f32 = 20.0;
     const SPACING: f32 = 4.0;
@@ -615,21 +634,38 @@ fn nav_section(
         open,
         active,
         Msg::ToggleNav(page),
-    ),]
+    )]
     .spacing(SPACING)
     .width(Length::Fill);
 
-    let revealed = section_stack_height(open, app.nav_reveal.as_ref(), page, full);
-    if revealed > 0.0 {
+    if open || reveal.is_some() {
         let mut sub_col = column![].spacing(SPACING);
         for (label, msg, sub_active) in subs {
             sub_col = sub_col.push(nav_sub_item(dark, label, *sub_active, msg.clone()));
         }
-        section = section.push(
-            iced::widget::container(sub_col)
+        let stack: Element<'static, Msg> = match reveal {
+            Some(r) => iced::widget::container(sub_col)
                 .width(Length::Fill)
-                .height(Length::Fixed(revealed))
-                .clip(true),
+                .height(Length::Fixed(section_stack_height(
+                    true,
+                    Some(r),
+                    page,
+                    full,
+                )))
+                .clip(true)
+                .into(),
+            None => iced::widget::container(sub_col).width(Length::Fill).into(),
+        };
+        section = section.push(
+            iced::widget::container(stack)
+                .padding(iced::Padding {
+                    top: 3.0,
+                    right: 6.0,
+                    bottom: 3.0,
+                    left: 6.0,
+                })
+                .width(Length::Fill)
+                .style(move |_| nav_group_block(dark)),
         );
     }
 
@@ -825,81 +861,6 @@ const DEV_TABS: [(DevTool, &str); 2] = [
     (DevTool::Diff, "dev.diff"),
 ];
 
-pub fn file_tabs(app: &App) -> Element<'_, Msg> {
-    tab_row(app, &FILE_TABS, |tool| app.file_tool == tool, Msg::FileTool)
-}
-
-pub fn dev_tabs(app: &App) -> Element<'_, Msg> {
-    tab_row(app, &DEV_TABS, |tool| app.dev_tool == tool, Msg::DevTool)
-}
-
-fn tab_row<'a, T: Copy + 'static>(
-    app: &'a App,
-    tabs: &'static [(T, &'static str)],
-    is_active: impl Fn(T) -> bool,
-    msg: impl Fn(T) -> Msg + Copy + 'static,
-) -> Element<'a, Msg> {
-    let s = palette::scheme(app.dark);
-    let mut r = row![].spacing(4);
-    for (tool, key) in tabs {
-        let active = is_active(*tool);
-        let label = tr(app.lang, key).to_string();
-        let m = msg(*tool);
-        let tab_btn = button(
-            container(text(label).size(13))
-                .width(Length::Fill)
-                .align_x(Alignment::Center),
-        )
-        .width(Length::Fill)
-        .padding([8, 4])
-        .style(move |_, status| {
-            let mut st = button::Style {
-                background: Some(Color::TRANSPARENT.into()),
-                text_color: if active { s.text } else { s.text_muted },
-                border: iced::Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: 0.0.into(),
-                },
-                shadow: Default::default(),
-            };
-            if let button::Status::Hovered = status {
-                if !active {
-                    st.text_color = s.text;
-                }
-            }
-            st
-        })
-        .on_press(m);
-        let underline = container(iced::widget::Space::with_height(Length::Fixed(2.0)))
-            .width(Length::Fill)
-            .style(move |_| container::Style {
-                background: Some(if active {
-                    s.accent.into()
-                } else {
-                    Color::TRANSPARENT.into()
-                }),
-                ..Default::default()
-            });
-        r = r.push(column![tab_btn, underline].spacing(4).width(Length::Fill));
-    }
-    container(r)
-        .width(Length::Fill)
-        .padding(iced::Padding {
-            bottom: 8.0,
-            ..Default::default()
-        })
-        .style(move |_| container::Style {
-            border: iced::Border {
-                color: s.border,
-                width: 0.0,
-                radius: 0.0.into(),
-            },
-            ..Default::default()
-        })
-        .into()
-}
-
 /// True when the current screen is an empty state: those render without
 /// the scroll (a scrollable gives its content unbounded height, where
 /// `Fill` collapses) and center vertically in the window instead.
@@ -952,33 +913,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         .width(Length::Fill)
         .height(Length::Fill)
         .align_y(Alignment::Center);
-        match app.page {
-            Page::Files => column![file_tabs(app), centered]
-                .spacing(16)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into(),
-            Page::Developer => column![dev_tabs(app), centered]
-                .spacing(16)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into(),
-            _ => centered.into(),
-        }
+        centered.into()
     } else {
-        let with_tabs: Element<Msg> = match app.page {
-            Page::Files => column![file_tabs(app), content]
-                .spacing(16)
-                .width(Length::Fill)
-                .into(),
-            Page::Developer => column![dev_tabs(app), content]
-                .spacing(16)
-                .width(Length::Fill)
-                .into(),
-            _ => content,
-        };
         column![scrollable(
-            container(with_tabs)
+            container(content)
                 .padding(iced::Padding {
                     top: 16.0,
                     right: 28.0,
