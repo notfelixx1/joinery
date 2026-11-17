@@ -805,17 +805,53 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         .into()
 }
 
+/// The i18n key of a file tool, via the sidebar's own table.
+fn file_tool_key(tool: FileTool) -> &'static str {
+    FILE_TABS
+        .iter()
+        .find(|(t, _)| *t == tool)
+        .map_or("", |(_, k)| k)
+}
+
+/// The i18n key of a developer tool, via the sidebar's own table.
+fn dev_tool_key(tool: DevTool) -> &'static str {
+    DEV_TABS
+        .iter()
+        .find(|(t, _)| *t == tool)
+        .map_or("", |(_, k)| k)
+}
+
+/// Section → tool breadcrumb for the pages hosting several tools:
+/// the section stays muted, the active tool is in the normal text
+/// color and reads as "where exactly you are".
+fn breadcrumb<'a>(
+    app: &'a App,
+    section_key: &'static str,
+    tool_key: &'static str,
+) -> Element<'a, Msg> {
+    row![
+        text(tr(app.lang, section_key))
+            .size(20)
+            .style(muted(app.dark)),
+        text("→").size(16).style(muted(app.dark)),
+        text(tr(app.lang, tool_key)).size(20),
+    ]
+    .spacing(8)
+    .align_y(Alignment::Center)
+    .into()
+}
+
 fn topbar(app: &App) -> Element<'_, Msg> {
-    let title_key = match app.page {
-        Page::Home => "nav.home",
-        Page::Files => "nav.files",
-        Page::Developer => "nav.developer",
-        Page::History => "nav.history",
-        Page::System => "nav.system",
-        Page::Support => "nav.support",
+    let title: Element<'_, Msg> = match app.page {
+        Page::Files => breadcrumb(app, "nav.files", file_tool_key(app.file_tool)),
+        Page::Developer => breadcrumb(app, "nav.developer", dev_tool_key(app.dev_tool)),
+        Page::Home => text(tr(app.lang, "nav.home")).size(20).into(),
+        Page::History => text(tr(app.lang, "nav.history")).size(20).into(),
+        Page::System => text(tr(app.lang, "nav.system")).size(20).into(),
+        Page::Support => text(tr(app.lang, "nav.support")).size(20).into(),
     };
     row![
-        text(tr(app.lang, title_key)).size(20),
+        title,
         iced::widget::horizontal_space(),
         iced::widget::pick_list(Lang::ALL, Some(app.lang), Msg::SetLang)
             .text_size(12)
@@ -945,9 +981,16 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
 #[cfg(test)]
 mod nav_section_tests {
-    use crate::app::{NavReveal, Page};
+    use crate::app::{DevTool, FileTool, NavReveal, Page};
 
-    use super::section_stack_height;
+    use super::{dev_tool_key, file_tool_key, section_stack_height};
+
+    #[test]
+    fn breadcrumb_keys_resolve_through_the_tables() {
+        assert_eq!(file_tool_key(FileTool::Checksum), "tool.checksum");
+        assert_eq!(file_tool_key(FileTool::Renamer), "tool.renamer");
+        assert_eq!(dev_tool_key(DevTool::Diff), "dev.diff");
+    }
 
     const FULL: f32 = 136.0;
 

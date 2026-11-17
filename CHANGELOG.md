@@ -7,6 +7,9 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Breadcrumbs in the top bar** — tool pages read as
+  "Files → Checksums": the section stays muted, the active tool is in
+  the normal text color.
 - **Collapsible sidebar sections** — "Files" and "Developer" are groups
   now: the header slides out the tool sub-items (chevron + a short
   reveal animation), and a sub-item jumps straight to that tool from
