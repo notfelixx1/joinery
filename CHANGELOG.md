@@ -3,6 +3,21 @@
 All notable changes to Joinery Tools are documented here.
 Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- **Diff engine** — the external `imara-diff` (Histogram) is replaced
+  by an in-house contiguity-first engine: anchors are maximal common
+  runs discovered through line-trigram seeds, selected by a
+  maximum-weight monotone chain and refined per gap. On the validation
+  protocol — real file pairs from the project history, five synthetic
+  classes up to 1M lines and a 600-case mutation fuzz — it matches the
+  reference quality everywhere, peaks at 201 MB vs 229 MB on a
+  1M-line diff, and runs the scattered-changes class 28–206× faster.
+  The external dependency is dropped; the property and fuzz tests now
+  live in the core test suite.
+
 ## [0.1.2] — 2026-11-17
 
 ### Added
