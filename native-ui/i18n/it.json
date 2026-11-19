@@ -124,5 +124,6 @@
   "common.copied": "Copiato",
   "history.confirm": "Annullare la rinomina di {n} file? I nomi tornano a quelli originali.",
   "renamer.allowOverwrite.hint": "Se selezionato, le destinazioni esistenti vengono sostituite.",
-  "diff.giantConfirm": "Diff gigante: {n} righe. La costruzione può richiedere tempo e memoria. Continuare?"
+  "diff.giantConfirm": "Diff gigante: {n} righe. La costruzione può richiedere tempo e memoria. Continuare?",
+  "checksum.autocopy": "Copia hash automaticamente"
 }

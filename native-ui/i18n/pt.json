@@ -124,5 +124,6 @@
   "common.copied": "Copiado",
   "history.confirm": "Desfazer a renomeação de {n} arquivo(s)? Os nomes voltam ao original.",
   "renamer.allowOverwrite.hint": "Se marcado, os destinos existentes serão substituídos.",
-  "diff.giantConfirm": "Diff gigante: {n} linhas. Construir pode demorar e usar muita memória. Continuar?"
+  "diff.giantConfirm": "Diff gigante: {n} linhas. Construir pode demorar e usar muita memória. Continuar?",
+  "checksum.autocopy": "Copiar hash automaticamente"
 }

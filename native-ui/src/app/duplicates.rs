@@ -104,13 +104,19 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.dup.min_size = v;
             Task::none()
         }
-        Msg::Scan => app.dup.start_scan(),
+        Msg::Scan => {
+            let task = app.dup.start_scan();
+            app.progress = Some(0.15);
+            task
+        }
         Msg::Progress(n) => {
             app.dup.scanned = n;
+            app.progress = Some(super::scan_pulse(n));
             Task::none()
         }
         Msg::Done(res) => {
             app.dup.scanning = false;
+            app.progress = None;
             match res {
                 Ok(result) => {
                     let mut selected = HashMap::new();

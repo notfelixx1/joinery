@@ -124,5 +124,6 @@
   "common.copied": "Copied",
   "history.confirm": "Undo the renaming of {n} file(s)? The names go back to what they were.",
   "renamer.allowOverwrite.hint": "When checked, existing targets are replaced.",
-  "diff.giantConfirm": "Giant diff: {n} lines. Building it may take a while and use a lot of memory. Continue?"
+  "diff.giantConfirm": "Giant diff: {n} lines. Building it may take a while and use a lot of memory. Continue?",
+  "checksum.autocopy": "Auto-copy hash to clipboard"
 }

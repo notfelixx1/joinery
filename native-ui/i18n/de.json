@@ -124,5 +124,6 @@
   "common.copied": "Kopiert",
   "history.confirm": "Das Umbenennen von {n} Datei(en) rückgängig machen? Die Namen kehren zu den Originalen zurück.",
   "renamer.allowOverwrite.hint": "Wenn aktiviert, werden vorhandene Ziele ersetzt.",
-  "diff.giantConfirm": "Riesiger Diff: {n} Zeilen. Das Erstellen kann dauern und viel Speicher brauchen. Fortfahren?"
+  "diff.giantConfirm": "Riesiger Diff: {n} Zeilen. Das Erstellen kann dauern und viel Speicher brauchen. Fortfahren?",
+  "checksum.autocopy": "Hash automatisch kopieren"
 }

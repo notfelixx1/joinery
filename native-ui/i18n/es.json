@@ -124,5 +124,6 @@
   "common.copied": "Copiado",
   "history.confirm": "¿Deshacer el renombrado de {n} archivo(s)? Los nombres vuelven a ser los originales.",
   "renamer.allowOverwrite.hint": "Si está marcado, los archivos existentes se sobrescriben.",
-  "diff.giantConfirm": "Diff gigante: {n} líneas. Construirlo puede tardar y usar mucha memoria. ¿Continuar?"
+  "diff.giantConfirm": "Diff gigante: {n} líneas. Construirlo puede tardar y usar mucha memoria. ¿Continuar?",
+  "checksum.autocopy": "Copiar el hash automáticamente"
 }

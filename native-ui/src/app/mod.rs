@@ -70,6 +70,13 @@ pub enum Msg {
     SetLang(Lang),
     OpenUrl(&'static str),
 
+    /// Window close interception: geometry is saved, then the window
+    /// actually closes.
+    CloseRequested(iced::window::Id),
+    CloseMax(iced::window::Id, bool),
+    ClosePos(iced::window::Id, Option<iced::Point>),
+    CloseSize(iced::window::Id, iced::Size),
+
     Renamer(renamer::Msg),
     Duplicates(duplicates::Msg),
     Analyzer(analyzer::Msg),
@@ -99,6 +106,13 @@ pub struct App {
     pub nav_open: Option<Page>,
     /// The section reveal animation in flight, if any.
     pub nav_reveal: Option<NavReveal>,
+    /// Top-bar progress fraction while a long operation runs.
+    pub progress: Option<f32>,
+    /// Auto-copy the checksum hash to the clipboard (saved setting).
+    pub cks_autocopy: bool,
+    /// Window position captured on the close request, handed to the
+    /// size step before both are persisted.
+    pub close_pos: Option<iced::Point>,
 
     pub history: Vec<undo::JournalEntry>,
     pub history_note: Option<String>,
@@ -198,13 +212,82 @@ impl Options {
     }
 }
 
+/// Where the app database lives — shared with main for the early
+/// window-geometry read.
+pub fn settings_db_path() -> PathBuf {
+    dirs::data_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("dev.joinery.tools")
+        .join("joinery.db")
+}
+
+/// Stable text codes for the persisted session settings.
+pub(crate) fn page_code(page: Page) -> &'static str {
+    match page {
+        Page::Home => "home",
+        Page::Files => "files",
+        Page::Developer => "developer",
+        Page::History => "history",
+        Page::System => "system",
+        Page::Support => "support",
+    }
+}
+
+pub(crate) fn page_from_code(v: &str) -> Option<Page> {
+    match v {
+        "home" => Some(Page::Home),
+        "files" => Some(Page::Files),
+        "developer" => Some(Page::Developer),
+        "history" => Some(Page::History),
+        "system" => Some(Page::System),
+        "support" => Some(Page::Support),
+        _ => None,
+    }
+}
+
+pub(crate) fn file_tool_code(tool: FileTool) -> &'static str {
+    match tool {
+        FileTool::Renamer => "renamer",
+        FileTool::Duplicates => "duplicates",
+        FileTool::Analyzer => "analyzer",
+        FileTool::Checksum => "checksum",
+    }
+}
+
+pub(crate) fn file_tool_from_code(v: &str) -> Option<FileTool> {
+    match v {
+        "renamer" => Some(FileTool::Renamer),
+        "duplicates" => Some(FileTool::Duplicates),
+        "analyzer" => Some(FileTool::Analyzer),
+        "checksum" => Some(FileTool::Checksum),
+        _ => None,
+    }
+}
+
+pub(crate) fn dev_tool_code(tool: DevTool) -> &'static str {
+    match tool {
+        DevTool::JsonYaml => "jsonyaml",
+        DevTool::Diff => "diff",
+    }
+}
+
+pub(crate) fn dev_tool_from_code(v: &str) -> Option<DevTool> {
+    match v {
+        "jsonyaml" => Some(DevTool::JsonYaml),
+        "diff" => Some(DevTool::Diff),
+        _ => None,
+    }
+}
+
+/// Indeterminate shimmer for the top-bar progress, driven by the
+/// per-file scan counter.
+pub(crate) fn scan_pulse(n: u64) -> f32 {
+    0.15 + 0.6 * ((n % 24) as f32 / 24.0)
+}
+
 impl App {
     pub fn new(options: Options) -> (App, Task<Msg>) {
-        let db_path = dirs::data_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("dev.joinery.tools")
-            .join("joinery.db");
-        let db = database::open(&db_path).ok();
+        let db = database::open(&settings_db_path()).ok();
 
         // Settle journals left pending by a crash between the intent
         // and the confirmation — bookkeeping only, no file operations.
@@ -214,6 +297,11 @@ impl App {
 
         let mut dark = false;
         let mut lang = Lang::En;
+        let mut saved_page: Option<Page> = None;
+        let mut saved_file_tool: Option<FileTool> = None;
+        let mut saved_dev_tool: Option<DevTool> = None;
+        let mut saved_nav_open: Option<Page> = None;
+        let mut cks_autocopy = true;
         let (ren_recent, dup_recent, ana_recent) = match &db {
             Some(conn) => (
                 database::recent_list(conn, "recent.renamer"),
@@ -230,25 +318,55 @@ impl App {
             if let Some(v) = database::get_setting(conn, "lang").unwrap_or(None) {
                 lang = Lang::from_str(&v);
             }
+            saved_page = database::get_setting(conn, "page")
+                .unwrap_or(None)
+                .and_then(|v| page_from_code(&v));
+            saved_file_tool = database::get_setting(conn, "file_tool")
+                .unwrap_or(None)
+                .and_then(|v| file_tool_from_code(&v));
+            saved_dev_tool = database::get_setting(conn, "dev_tool")
+                .unwrap_or(None)
+                .and_then(|v| dev_tool_from_code(&v));
+            saved_nav_open = database::get_setting(conn, "nav_open")
+                .unwrap_or(None)
+                .and_then(|v| page_from_code(&v))
+                .filter(|p| matches!(p, Page::Files | Page::Developer));
+            cks_autocopy = database::get_setting(conn, "cks_autocopy")
+                .unwrap_or(None)
+                .map(|v| v != "0")
+                .unwrap_or(true);
         }
 
         // Command-line overrides win over the saved settings.
         dark = options.dark.unwrap_or(dark);
         lang = options.lang.unwrap_or(lang);
 
-        let page = options.page.unwrap_or(Page::Home);
+        // "Open where you left off": the last session comes back
+        // unless the command line points somewhere specific.
+        let page = options.page.unwrap_or(saved_page.unwrap_or(Page::Home));
+        let nav_open = match options.page {
+            Some(p @ (Page::Files | Page::Developer)) => Some(p),
+            Some(_) => saved_nav_open,
+            None => saved_nav_open.or(match page {
+                Page::Files | Page::Developer => Some(page),
+                _ => None,
+            }),
+        };
         let mut app = App {
             page,
-            file_tool: options.file_tool.unwrap_or(FileTool::Renamer),
-            dev_tool: options.dev_tool.unwrap_or(DevTool::JsonYaml),
+            file_tool: options
+                .file_tool
+                .unwrap_or(saved_file_tool.unwrap_or(FileTool::Renamer)),
+            dev_tool: options
+                .dev_tool
+                .unwrap_or(saved_dev_tool.unwrap_or(DevTool::JsonYaml)),
+            cks_autocopy,
+            nav_open,
+            progress: None,
+            close_pos: None,
             dark,
             lang,
             db,
-            // Launching straight on a tool opens its sidebar section.
-            nav_open: match page {
-                Page::Files | Page::Developer => Some(page),
-                _ => None,
-            },
             nav_reveal: None,
             history: Vec::new(),
             history_note: None,
@@ -295,6 +413,8 @@ pub fn subscription(app: &App) -> Subscription<Msg> {
     Subscription::batch([
         reveal,
         duplicates::scan_subscription(app).map(Msg::Duplicates),
+        checksum::run_subscription(app).map(Msg::Checksum),
+        iced::window::close_requests().map(Msg::CloseRequested),
     ])
 }
 
@@ -302,6 +422,7 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
     match msg {
         Msg::Nav(page) => {
             app.page = page;
+            persist_settings(&app.db, "page", page_code(page));
             if page == Page::History {
                 history::reload(app);
             }
@@ -315,6 +436,8 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
                 app.page = page;
             }
             app.nav_open = if opening { Some(page) } else { None };
+            persist_settings(&app.db, "nav_open", page_code(page));
+            persist_settings(&app.db, "page", page_code(app.page));
             app.nav_reveal = Some(NavReveal {
                 page,
                 opening,
@@ -334,11 +457,17 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
         Msg::FileTool(tool) => {
             app.file_tool = tool;
             app.page = Page::Files;
+            app.nav_open = Some(Page::Files);
+            persist_settings(&app.db, "file_tool", file_tool_code(tool));
+            persist_settings(&app.db, "page", page_code(Page::Files));
             Task::none()
         }
         Msg::DevTool(tool) => {
             app.dev_tool = tool;
             app.page = Page::Developer;
+            app.nav_open = Some(Page::Developer);
+            persist_settings(&app.db, "dev_tool", dev_tool_code(tool));
+            persist_settings(&app.db, "page", page_code(Page::Developer));
             Task::none()
         }
         Msg::ToggleTheme => {
@@ -350,6 +479,34 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             app.lang = lang;
             persist_settings(&app.db, "lang", lang.code());
             Task::none()
+        }
+        Msg::CloseRequested(id) => {
+            iced::window::get_maximized(id).map(move |maximized| Msg::CloseMax(id, maximized))
+        }
+        Msg::CloseMax(id, maximized) => {
+            if maximized {
+                // Keep the last normal-sized geometry; do not persist
+                // the maximized window's full-monitor rectangle.
+                iced::window::close(id)
+            } else {
+                iced::window::get_position(id).map(move |pos| Msg::ClosePos(id, pos))
+            }
+        }
+        Msg::ClosePos(id, pos) => {
+            app.close_pos = pos;
+            iced::window::get_size(id).map(move |size| Msg::CloseSize(id, size))
+        }
+        Msg::CloseSize(id, size) => {
+            if let (Some(pos), Some(conn)) = (app.close_pos, &app.db) {
+                if size.width >= 300.0 && size.height >= 200.0 {
+                    let _ = database::set_setting(conn, "win_x", &pos.x.to_string());
+                    let _ = database::set_setting(conn, "win_y", &pos.y.to_string());
+                    let _ = database::set_setting(conn, "win_w", &size.width.to_string());
+                    let _ = database::set_setting(conn, "win_h", &size.height.to_string());
+                }
+            }
+            app.close_pos = None;
+            iced::window::close(id)
         }
         Msg::OpenUrl(url) => {
             let _ = open::that(url);
@@ -424,6 +581,9 @@ pub(crate) fn test_app() -> App {
         db: None,
         nav_open: None,
         nav_reveal: None,
+        progress: None,
+        cks_autocopy: true,
+        close_pos: None,
         history: Vec::new(),
         history_note: None,
         ren_recent: Vec::new(),
@@ -511,5 +671,68 @@ mod nav_tests {
         let _ = update(&mut app, Msg::DevTool(DevTool::Diff));
         assert_eq!(app.page, Page::Developer);
         assert_eq!(app.dev_tool, DevTool::Diff);
+    }
+}
+
+#[cfg(test)]
+mod session_tests {
+    use super::*;
+
+    #[test]
+    fn session_codes_round_trip() {
+        for page in [
+            Page::Home,
+            Page::Files,
+            Page::Developer,
+            Page::History,
+            Page::System,
+            Page::Support,
+        ] {
+            assert_eq!(page_from_code(page_code(page)), Some(page));
+        }
+        for tool in [
+            FileTool::Renamer,
+            FileTool::Duplicates,
+            FileTool::Analyzer,
+            FileTool::Checksum,
+        ] {
+            assert_eq!(file_tool_from_code(file_tool_code(tool)), Some(tool));
+        }
+        for tool in [DevTool::JsonYaml, DevTool::Diff] {
+            assert_eq!(dev_tool_from_code(dev_tool_code(tool)), Some(tool));
+        }
+        assert_eq!(page_from_code("bogus"), None);
+        assert_eq!(file_tool_from_code("bogus"), None);
+        assert_eq!(dev_tool_from_code("bogus"), None);
+    }
+
+    #[test]
+    fn scan_pulse_stays_in_bounds() {
+        for n in 0..100u64 {
+            let f = scan_pulse(n);
+            assert!(
+                (0.0..=1.0).contains(&f),
+                "pulse {f} out of bounds for n={n}"
+            );
+        }
+    }
+
+    #[test]
+    fn autocopy_toggle_applies() {
+        let mut app = test_app();
+        let _ = update(&mut app, Msg::Checksum(checksum::Msg::Autocopy(false)));
+        assert!(!app.cks_autocopy);
+        let _ = update(&mut app, Msg::Checksum(checksum::Msg::Autocopy(true)));
+        assert!(app.cks_autocopy);
+    }
+
+    #[test]
+    fn picking_a_tool_reopens_its_section() {
+        let mut app = test_app();
+        app.nav_open = None;
+        let _ = update(&mut app, Msg::FileTool(FileTool::Checksum));
+        assert_eq!(app.nav_open, Some(Page::Files));
+        let _ = update(&mut app, Msg::DevTool(DevTool::Diff));
+        assert_eq!(app.nav_open, Some(Page::Developer));
     }
 }

@@ -5,6 +5,19 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Window memory** — the size and position come back after a
+  restart; a maximized session keeps its saved normal-size geometry.
+- **Checksum auto-copy** — on by default: a single-file hash lands in
+  the clipboard the moment it is computed, reusing the transient
+  "Copied" label; the toggle sits next to the algorithm.
+- **Open where you left off** — the last page, tool and sidebar
+  section come back on startup; command-line flags still override.
+- **Progress in the top bar** — a thin strip under the header driven
+  by long operations: per-file checksum hashing and duplicate
+  scanning.
+
 ### Changed
 
 - **Diff engine** — the external `imara-diff` (Histogram) is replaced

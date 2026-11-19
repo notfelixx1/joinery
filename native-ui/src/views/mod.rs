@@ -968,11 +968,23 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         .into()
     };
 
+    // Thin progress strip under the top bar while a long operation
+    // runs (checksum hashing, duplicate scanning).
+    let head: Element<Msg> = match app.progress {
+        Some(frac) => column![
+            topbar(app),
+            iced::widget::progress_bar(0.0..=1.0, frac.clamp(0.0, 1.0))
+                .height(3.0)
+                .width(Length::Fill),
+        ]
+        .spacing(0)
+        .into(),
+        None => topbar(app),
+    };
+
     row![
         sidebar(app),
-        column![topbar(app), body]
-            .width(Length::Fill)
-            .height(Length::Fill)
+        column![head, body].width(Length::Fill).height(Length::Fill)
     ]
     .width(Length::Fill)
     .height(Length::Fill)
