@@ -19,6 +19,10 @@ pub const fn rgb8(r: u8, g: u8, b: u8) -> Color {
     }
 }
 
+/// The fixed brand color of the logo mark — independent of the user
+/// accent, so the logo never changes.
+pub const BRAND_INDIGO: Color = rgb8(0x4f, 0x46, 0xe5);
+
 pub const OK: Color = rgb8(0x10, 0xb9, 0x81);
 pub const DANGER: Color = rgb8(0xef, 0x44, 0x44);
 pub const WARN: Color = rgb8(0xf5, 0x90, 0x18);

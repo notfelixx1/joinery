@@ -394,26 +394,32 @@ pub fn divider<'a, M: 'a>() -> Element<'a, M> {
 // ---------- layout ----------
 
 fn logo() -> Element<'static, Msg> {
-    let s = palette::scheme();
-    container(text("J").size(17).style(move |_| text::Style {
-        color: Some(crate::palette::on_color_for(s.accent)),
-    }))
-    .width(32)
-    .height(32)
+    use iced::Color;
+
+    // Brand mark: fixed indigo tile — does not follow the user accent.
+    let brand = palette::BRAND_INDIGO;
+    container(
+        icons::logo_mark()
+            .width(Length::Fixed(20.0))
+            .height(Length::Fixed(20.0))
+            .style(move |_, _| iced::widget::svg::Style {
+                color: Some(Color::WHITE),
+            }),
+    )
+    .width(Length::Fixed(32.0))
+    .height(Length::Fixed(32.0))
     .align_x(Alignment::Center)
     .align_y(Alignment::Center)
     .style(move |_| container::Style {
-        background: Some(s.accent.into()),
+        background: Some(brand.into()),
         border: iced::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
             radius: 8.0.into(),
+            ..Default::default()
         },
         ..Default::default()
     })
     .into()
 }
-
 /// Shared style for sidebar buttons: active items sit on the active
 /// surface in the accent color, idle ones are muted and fill on hover.
 fn nav_btn_style(active: bool) -> impl Fn(&iced::Theme, button::Status) -> button::Style {
