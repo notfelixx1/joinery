@@ -40,7 +40,9 @@ fn main() -> iced::Result {
     };
 
     iced::application("Joinery Tools", app::update, views::view)
-        .theme(|state: &app::App| state.iced_theme())
+        .theme(|_: &app::App| {
+            iced::Theme::custom("Joinery".to_string(), crate::palette::iced_palette())
+        })
         .subscription(app::subscription)
         .window(window::Settings {
             size,

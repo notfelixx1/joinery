@@ -8,7 +8,6 @@ use crate::palette;
 use crate::views::{btn, btn_primary, card, error_box, muted, text_color};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
     let j = &app.jy;
 
@@ -22,12 +21,8 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             iced::widget::pick_list(kinds, Some(j.kind), |k| Msg::JsonYaml(JyMsg::Kind(k)))
                 .text_size(13),
             iced::widget::horizontal_space(),
-            btn(
-                dark,
-                tr(lang, "common.example"),
-                Msg::JsonYaml(JyMsg::Example)
-            ),
-            btn(dark, tr(lang, "common.clear"), Msg::JsonYaml(JyMsg::Clear)),
+            btn(tr(lang, "common.example"), Msg::JsonYaml(JyMsg::Example)),
+            btn(tr(lang, "common.clear"), Msg::JsonYaml(JyMsg::Clear)),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
@@ -44,31 +39,24 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         _ => String::new(),
     };
 
-    let output = scrollable(container_text(output_text, dark))
+    let output = scrollable(container_text(output_text))
         .height(Length::Fixed(280.0))
         .width(Length::Fill);
 
     top = top.push(
         row![
-            column![
-                text(tr(lang, "dev.input")).size(12).style(muted(dark)),
-                input
-            ]
-            .spacing(4)
-            .width(Length::Fill),
-            column![
-                text(tr(lang, "dev.output")).size(12).style(muted(dark)),
-                output
-            ]
-            .spacing(4)
-            .width(Length::Fill),
+            column![text(tr(lang, "dev.input")).size(12).style(muted()), input]
+                .spacing(4)
+                .width(Length::Fill),
+            column![text(tr(lang, "dev.output")).size(12).style(muted()), output]
+                .spacing(4)
+                .width(Length::Fill),
         ]
         .spacing(12)
         .width(Length::Fill),
     );
 
     let mut actions = row![btn_primary(
-        dark,
         &if j.busy {
             tr(lang, "common.loading").to_string()
         } else {
@@ -86,12 +74,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     if j.kind == JyKind::Json {
         actions = actions
             .push(btn(
-                dark,
                 tr(lang, "common.format"),
                 Msg::JsonYaml(JyMsg::Reformat(false)),
             ))
             .push(btn(
-                dark,
                 tr(lang, "common.minify"),
                 Msg::JsonYaml(JyMsg::Reformat(true)),
             ));
@@ -99,9 +85,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     actions = actions.push(iced::widget::horizontal_space());
     if let Some(result) = &j.result {
         let color = if result.valid {
-            palette::scheme(dark).ok
+            palette::scheme().ok
         } else {
-            palette::scheme(dark).danger
+            palette::scheme().danger
         };
         let key = if result.valid {
             "dev.valid"
@@ -130,19 +116,19 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         ],
                     ));
                 }
-                top = top.push(error_box(dark, &message));
+                top = top.push(error_box(&message));
             }
         }
     }
     if let Some(err) = &j.error {
-        top = top.push(error_box(dark, err));
+        top = top.push(error_box(err));
     }
 
-    col.push(card(dark, top)).into()
+    col.push(card(top)).into()
 }
 
-fn container_text(content: String, dark: bool) -> Element<'static, Msg> {
-    let s = palette::scheme(dark);
+fn container_text(content: String) -> Element<'static, Msg> {
+    let s = palette::scheme();
     if content.is_empty() {
         text("").size(13).width(Length::Fill).into()
     } else {

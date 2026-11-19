@@ -25,8 +25,8 @@ use crate::palette;
 
 // ---------- styles ----------
 
-pub fn card_style(dark: bool) -> container::Style {
-    let s = palette::scheme(dark);
+pub fn card_style() -> container::Style {
+    let s = palette::scheme();
     container::Style {
         background: Some(s.surface.into()),
         text_color: Some(s.text),
@@ -39,15 +39,10 @@ pub fn card_style(dark: bool) -> container::Style {
     }
 }
 
-fn sidebar_style(dark: bool) -> container::Style {
-    let s = palette::scheme(dark);
+fn sidebar_style() -> container::Style {
+    let s = palette::scheme();
     container::Style {
-        background: Some(s.surface.into()),
-        border: iced::Border {
-            color: s.border,
-            width: if dark { 0.0 } else { 1.0 },
-            radius: 0.0.into(),
-        },
+        background: Some(s.panel.into()),
         ..Default::default()
     }
 }
@@ -60,8 +55,8 @@ pub enum BtnVariant {
     Ghost,
 }
 
-pub fn btn_style(dark: bool, variant: BtnVariant, status: button::Status) -> button::Style {
-    let s = palette::scheme(dark);
+pub fn btn_style(variant: BtnVariant, status: button::Status) -> button::Style {
+    let s = palette::scheme();
     let base = match variant {
         BtnVariant::Plain => (Some(s.surface), s.border, s.text),
         BtnVariant::Primary => (Some(s.accent), s.accent, s.accent_text),
@@ -136,37 +131,33 @@ pub fn text_color(color: Color) -> impl Fn(&iced::Theme) -> text::Style + Copy {
     move |_| text::Style { color: Some(color) }
 }
 
-pub fn muted(dark: bool) -> impl Fn(&iced::Theme) -> text::Style + Copy {
-    let color = palette::scheme(dark).text_muted;
+pub fn muted() -> impl Fn(&iced::Theme) -> text::Style + Copy {
+    let color = palette::scheme().text_muted;
     move |_| text::Style { color: Some(color) }
 }
 
 // ---------- shared widgets ----------
 
-pub fn card<'a, M: 'a>(dark: bool, content: impl Into<Element<'a, M>>) -> Element<'a, M> {
+pub fn card<'a, M: 'a>(content: impl Into<Element<'a, M>>) -> Element<'a, M> {
     container(content.into())
         .width(Length::Fill)
         .padding(20)
-        .style(move |_| card_style(dark))
+        .style(move |_| card_style())
         .into()
 }
 
-pub fn btn<M: Clone + 'static>(dark: bool, label: &str, msg: M) -> Element<'static, M> {
+pub fn btn<M: Clone + 'static>(label: &str, msg: M) -> Element<'static, M> {
     button(text(label.to_string()).size(13))
         .padding([8, 16])
-        .style(move |_, status| btn_style(dark, BtnVariant::Plain, status))
+        .style(move |_, status| btn_style(BtnVariant::Plain, status))
         .on_press(msg)
         .into()
 }
 
-pub fn btn_primary<M: Clone + 'static>(
-    dark: bool,
-    label: &str,
-    msg: Option<M>,
-) -> Element<'static, M> {
+pub fn btn_primary<M: Clone + 'static>(label: &str, msg: Option<M>) -> Element<'static, M> {
     let mut b = button(text(label.to_string()).size(13))
         .padding([8, 16])
-        .style(move |_, status| btn_style(dark, BtnVariant::Primary, status));
+        .style(move |_, status| btn_style(BtnVariant::Primary, status));
     b = match msg {
         Some(m) => b.on_press(m),
         None => b,
@@ -174,51 +165,22 @@ pub fn btn_primary<M: Clone + 'static>(
     b.into()
 }
 
-pub fn btn_danger<M: Clone + 'static>(
-    dark: bool,
-    label: &str,
-    msg: Option<M>,
-) -> Element<'static, M> {
+pub fn btn_danger<M: Clone + 'static>(label: &str, msg: Option<M>) -> Element<'static, M> {
     let mut b = button(text(label.to_string()).size(13))
         .padding([8, 16])
-        .style(move |_, status| btn_style(dark, BtnVariant::Danger, status));
+        .style(move |_, status| btn_style(BtnVariant::Danger, status));
     b = match msg {
         Some(m) => b.on_press(m),
         None => b,
     };
     b.into()
-}
-
-pub fn icon_btn<M: Clone + 'static>(
-    dark: bool,
-    icon: Element<'static, M>,
-    msg: M,
-) -> Element<'static, M> {
-    button(icon)
-        .padding(8)
-        .style(move |_, status| btn_style(dark, BtnVariant::Ghost, status))
-        .on_press(msg)
-        .into()
 }
 
 /// Sidebar nav icon: muted when idle, accent when the page is active.
-fn nav_icon(dark: bool, active: bool, icon: Svg<'static>) -> Element<'static, Msg> {
-    let s = palette::scheme(dark);
+fn nav_icon(active: bool, icon: Svg<'static>) -> Element<'static, Msg> {
+    let s = palette::scheme();
     icon.style(move |_, _| iced::widget::svg::Style {
         color: Some(if active { s.accent } else { s.text_muted }),
-    })
-    .into()
-}
-
-/// Topbar icon: muted when idle, full text color on hover.
-fn topbar_icon(dark: bool, icon: Svg<'static>) -> Element<'static, Msg> {
-    let s = palette::scheme(dark);
-    icon.style(move |_, status| iced::widget::svg::Style {
-        color: Some(if matches!(status, iced::widget::svg::Status::Hovered) {
-            s.text
-        } else {
-            s.text_muted
-        }),
     })
     .into()
 }
@@ -235,13 +197,12 @@ fn dim(color: Color, factor: f32) -> Color {
 
 /// Centered "nothing here yet" card: icon, one line, one action.
 pub fn empty_state<'a, M: Clone + 'static>(
-    dark: bool,
     icon: fn() -> Svg<'static>,
     title: &str,
     hint: &str,
     action: Option<(&'a str, M)>,
 ) -> Element<'a, M> {
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
     let icon_widget = icon().style(move |_, _| iced::widget::svg::Style {
         color: Some(s.text_muted),
     });
@@ -270,24 +231,23 @@ pub fn empty_state<'a, M: Clone + 'static>(
     col = col.push(
         text(hint.to_string())
             .size(12)
-            .style(muted(dark))
+            .style(muted())
             .wrapping(iced::widget::text::Wrapping::Word),
     );
     if let Some((label, msg)) = action {
-        col = col.push(btn_primary(dark, label, Some(msg)));
+        col = col.push(btn_primary(label, Some(msg)));
     }
     container(col)
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .padding(48)
-        .style(move |_| card_style(dark))
+        .style(move |_| card_style())
         .into()
 }
 
 /// Quiet list of recently used folders; clicking one replays the
 /// folder-pick message without opening the dialog.
 pub fn recent_block<'a, M: Clone + 'static>(
-    dark: bool,
     label: &str,
     items: &[PathBuf],
     on_pick: impl Fn(String) -> M + Copy + 'a,
@@ -297,7 +257,7 @@ pub fn recent_block<'a, M: Clone + 'static>(
         .max_width(520)
         .width(Length::Fill)
         .align_x(Alignment::Center);
-    col = col.push(text(label.to_string()).size(12).style(muted(dark)));
+    col = col.push(text(label.to_string()).size(12).style(muted()));
     for item in items {
         let path = item.to_string_lossy().to_string();
         col = col.push(
@@ -306,7 +266,7 @@ pub fn recent_block<'a, M: Clone + 'static>(
                     .size(12)
                     .font(iced::font::Font::MONOSPACE)
                     .style(move |_| text::Style {
-                        color: Some(palette::scheme(dark).text_muted),
+                        color: Some(palette::scheme().text_muted),
                     }),
             )
             .padding([6, 10])
@@ -314,7 +274,7 @@ pub fn recent_block<'a, M: Clone + 'static>(
             .style(move |_, status| {
                 let mut st = button::Style {
                     background: Some(Color::TRANSPARENT.into()),
-                    text_color: palette::scheme(dark).text_muted,
+                    text_color: palette::scheme().text_muted,
                     border: iced::Border {
                         color: Color::TRANSPARENT,
                         width: 0.0,
@@ -323,8 +283,8 @@ pub fn recent_block<'a, M: Clone + 'static>(
                     shadow: Default::default(),
                 };
                 if let button::Status::Hovered = status {
-                    st.background = Some(palette::scheme(dark).surface_hover.into());
-                    st.text_color = palette::scheme(dark).text;
+                    st.background = Some(palette::scheme().surface_hover.into());
+                    st.text_color = palette::scheme().text;
                 }
                 st
             })
@@ -337,8 +297,8 @@ pub fn recent_block<'a, M: Clone + 'static>(
         .into()
 }
 
-pub fn error_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
-    let s = palette::scheme(dark);
+pub fn error_box<M: 'static>(message: &str) -> Element<'static, M> {
+    let s = palette::scheme();
     container(
         text(message.to_string())
             .size(13)
@@ -373,8 +333,8 @@ pub fn error_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
     .into()
 }
 
-pub fn ok_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
-    let s = palette::scheme(dark);
+pub fn ok_box<M: 'static>(message: &str) -> Element<'static, M> {
+    let s = palette::scheme();
     container(
         text(message.to_string())
             .size(13)
@@ -409,9 +369,9 @@ pub fn ok_box<M: 'static>(dark: bool, message: &str) -> Element<'static, M> {
     .into()
 }
 
-pub fn field<'a>(dark: bool, label: &str, input: impl Into<Element<'a, Msg>>) -> Element<'a, Msg> {
+pub fn field<'a>(label: &str, input: impl Into<Element<'a, Msg>>) -> Element<'a, Msg> {
     column![
-        text(label.to_string()).size(12).style(muted(dark)),
+        text(label.to_string()).size(12).style(muted()),
         input.into(),
     ]
     .spacing(4)
@@ -419,8 +379,8 @@ pub fn field<'a>(dark: bool, label: &str, input: impl Into<Element<'a, Msg>>) ->
     .into()
 }
 
-pub fn divider<'a, M: 'a>(dark: bool) -> Element<'a, M> {
-    let s = palette::scheme(dark);
+pub fn divider<'a, M: 'a>() -> Element<'a, M> {
+    let s = palette::scheme();
     container(iced::widget::horizontal_rule(1.0))
         .style(move |_| container::Style {
             background: Some(s.divider.into()),
@@ -433,10 +393,10 @@ pub fn divider<'a, M: 'a>(dark: bool) -> Element<'a, M> {
 
 // ---------- layout ----------
 
-fn logo(dark: bool) -> Element<'static, Msg> {
-    let s = palette::scheme(dark);
+fn logo() -> Element<'static, Msg> {
+    let s = palette::scheme();
     container(text("J").size(17).style(move |_| text::Style {
-        color: Some(if dark { s.background } else { Color::WHITE }),
+        color: Some(crate::palette::on_color_for(s.accent)),
     }))
     .width(32)
     .height(32)
@@ -456,11 +416,8 @@ fn logo(dark: bool) -> Element<'static, Msg> {
 
 /// Shared style for sidebar buttons: active items sit on the active
 /// surface in the accent color, idle ones are muted and fill on hover.
-fn nav_btn_style(
-    dark: bool,
-    active: bool,
-) -> impl Fn(&iced::Theme, button::Status) -> button::Style {
-    let s = palette::scheme(dark);
+fn nav_btn_style(active: bool) -> impl Fn(&iced::Theme, button::Status) -> button::Style {
+    let s = palette::scheme();
     move |_, status| {
         let mut st = button::Style {
             background: Some(if active {
@@ -494,7 +451,6 @@ fn nav_btn_style(
 }
 
 fn nav_button(
-    dark: bool,
     icon: Element<'static, Msg>,
     label: &str,
     active: bool,
@@ -508,7 +464,7 @@ fn nav_button(
     )
     .width(Length::Fill)
     .padding([9, 12])
-    .style(nav_btn_style(dark, active))
+    .style(nav_btn_style(active))
     .on_press(msg)
     .into()
 }
@@ -516,14 +472,13 @@ fn nav_button(
 /// A sidebar section header: icon, label and a chevron that points
 /// into the group when it is collapsed and down when expanded.
 fn nav_header(
-    dark: bool,
     icon: Element<'static, Msg>,
     label: String,
     expanded: bool,
     active: bool,
     msg: Msg,
 ) -> Element<'static, Msg> {
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
     let chevron = if expanded {
         icons::chevron_down()
     } else {
@@ -546,19 +501,19 @@ fn nav_header(
     )
     .width(Length::Fill)
     .padding([9, 12])
-    .style(nav_btn_style(dark, active))
+    .style(nav_btn_style(active))
     .on_press(msg)
     .into()
 }
 
 /// An indented sub-item inside an expanded section.
-fn nav_sub_item(dark: bool, label: &str, active: bool, msg: Msg) -> Element<'static, Msg> {
+fn nav_sub_item(label: &str, active: bool, msg: Msg) -> Element<'static, Msg> {
     let label = label.to_string();
     iced::widget::container(
         button(text(label).size(13))
             .width(Length::Fill)
             .padding([7, 10])
-            .style(nav_btn_style(dark, active))
+            .style(nav_btn_style(active))
             .on_press(msg),
     )
     .padding(iced::Padding {
@@ -588,8 +543,8 @@ fn section_stack_height(open: bool, reveal: Option<&NavReveal>, page: Page, full
 
 /// Subtle card behind an expanded section's sub-items — the group reads
 /// as one block instead of items floating over empty space.
-fn nav_group_block(dark: bool) -> container::Style {
-    let s = palette::scheme(dark);
+fn nav_group_block() -> container::Style {
+    let s = palette::scheme();
     container::Style {
         background: Some(s.surface.into()),
         border: iced::Border {
@@ -607,7 +562,6 @@ fn nav_group_block(dark: bool) -> container::Style {
 /// clipped container during the reveal, which `AnimTick` advances.
 fn nav_section(
     app: &App,
-    dark: bool,
     page: Page,
     key: &str,
     icon: fn() -> Svg<'static>,
@@ -629,8 +583,7 @@ fn nav_section(
         subs.len() as f32 * ITEM_H + subs.len().saturating_sub(1) as f32 * SPACING + WRAP_SLACK;
 
     let mut section = column![nav_header(
-        dark,
-        nav_icon(dark, active, icon()),
+        nav_icon(active, icon()),
         tr(app.lang, key).to_string(),
         open,
         active,
@@ -642,7 +595,7 @@ fn nav_section(
     if open || reveal.is_some() {
         let mut sub_col = column![].spacing(SPACING);
         for (label, msg, sub_active) in subs {
-            sub_col = sub_col.push(nav_sub_item(dark, label, *sub_active, msg.clone()));
+            sub_col = sub_col.push(nav_sub_item(label, *sub_active, msg.clone()));
         }
         let stack: Element<'static, Msg> = match reveal {
             Some(r) => iced::widget::container(sub_col)
@@ -666,7 +619,7 @@ fn nav_section(
                     left: 6.0,
                 })
                 .width(Length::Fill)
-                .style(move |_| nav_group_block(dark)),
+                .style(move |_| nav_group_block()),
         );
     }
 
@@ -674,23 +627,19 @@ fn nav_section(
 }
 
 fn sidebar(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
-
     let mut col = column![]
         .spacing(4)
         .width(Length::Fill)
         .height(Length::Fill);
     col = col.push(
         row![
-            logo(dark),
+            logo(),
             column![
                 text("Joinery").size(16).font(iced::Font {
                     weight: iced::font::Weight::Semibold,
                     ..iced::Font::default()
                 }),
-                text(tr(app.lang, "app.tagline"))
-                    .size(12)
-                    .style(muted(dark)),
+                text(tr(app.lang, "app.tagline")).size(12).style(muted()),
             ]
             .spacing(2)
         ]
@@ -705,8 +654,7 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
     );
 
     col = col.push(nav_button(
-        dark,
-        nav_icon(dark, app.page == Page::Home, icons::home()),
+        nav_icon(app.page == Page::Home, icons::home()),
         tr(app.lang, "nav.home"),
         app.page == Page::Home,
         Msg::Nav(Page::Home),
@@ -726,7 +674,6 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         .collect();
     col = col.push(nav_section(
         app,
-        dark,
         Page::Files,
         "nav.files",
         icons::folder,
@@ -745,7 +692,6 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         .collect();
     col = col.push(nav_section(
         app,
-        dark,
         Page::Developer,
         "nav.developer",
         icons::code,
@@ -770,8 +716,7 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         ),
     ] {
         col = col.push(nav_button(
-            dark,
-            nav_icon(dark, app.page == page, icon()),
+            nav_icon(app.page == page, icon()),
             tr(app.lang, key),
             app.page == page,
             Msg::Nav(page),
@@ -779,22 +724,19 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
     }
 
     col = col.push(iced::widget::vertical_space());
-    col = col.push(divider(dark));
+    col = col.push(divider());
     col = col.push(nav_button(
-        dark,
-        nav_icon(dark, app.page == Page::Settings, icons::settings()),
+        nav_icon(app.page == Page::Settings, icons::settings()),
         tr(app.lang, "nav.settings"),
         app.page == Page::Settings,
         Msg::Nav(Page::Settings),
     ));
     col = col.push(
         column![
-            text(tr(app.lang, "footer.license"))
-                .size(12)
-                .style(muted(dark)),
+            text(tr(app.lang, "footer.license")).size(12).style(muted()),
             text(format!("v{}", env!("CARGO_PKG_VERSION")))
                 .size(12)
-                .style(muted(dark)),
+                .style(muted()),
         ]
         .spacing(2)
         .padding(iced::Padding {
@@ -809,7 +751,7 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         .width(Length::Fixed(252.0))
         .height(Length::Fill)
         .padding([20, 16])
-        .style(move |_| sidebar_style(dark))
+        .style(move |_| sidebar_style())
         .into()
 }
 
@@ -838,10 +780,8 @@ fn breadcrumb<'a>(
     tool_key: &'static str,
 ) -> Element<'a, Msg> {
     row![
-        text(tr(app.lang, section_key))
-            .size(20)
-            .style(muted(app.dark)),
-        text("→").size(16).style(muted(app.dark)),
+        text(tr(app.lang, section_key)).size(20).style(muted()),
+        text("→").size(16).style(muted()),
         text(tr(app.lang, tool_key)).size(20),
     ]
     .spacing(8)
@@ -865,22 +805,6 @@ fn topbar(app: &App) -> Element<'_, Msg> {
         iced::widget::pick_list(Lang::ALL, Some(app.lang), Msg::SetLang)
             .text_size(12)
             .width(Length::Shrink),
-        iced::widget::tooltip(
-            icon_btn(
-                app.dark,
-                topbar_icon(
-                    app.dark,
-                    if app.dark {
-                        icons::sun()
-                    } else {
-                        icons::moon()
-                    }
-                ),
-                Msg::ToggleTheme
-            ),
-            text(tr(app.lang, "theme.toggle")).size(12),
-            iced::widget::tooltip::Position::Bottom,
-        ),
     ]
     .spacing(4)
     .align_y(Alignment::Center)

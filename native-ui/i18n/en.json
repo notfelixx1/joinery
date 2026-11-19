@@ -132,5 +132,11 @@
   "settings.accent": "Accent color",
   "settings.accent.hint": "Hex, e.g. #11AA11",
   "settings.language": "Language",
-  "settings.dark_theme": "Dark theme"
+  "settings.color.accent": "Buttons & accents",
+  "settings.color.background": "App background",
+  "settings.color.sidebar": "Sidebar",
+  "settings.color.cards": "Cards & surfaces",
+  "settings.color.text": "Text",
+  "settings.pal.dark": "Dark palette",
+  "settings.pal.light": "Light palette"
 }

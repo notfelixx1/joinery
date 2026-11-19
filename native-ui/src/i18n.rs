@@ -174,7 +174,7 @@ mod tests {
     #[test]
     fn every_language_covers_exactly_the_english_keys() {
         let en_keys: Vec<_> = en().keys().copied().collect();
-        assert_eq!(en_keys.len(), 134, "English dictionary size");
+        assert_eq!(en_keys.len(), 140, "English dictionary size");
         for lang in Lang::ALL {
             let table = &tables()[&lang];
             for key in &en_keys {

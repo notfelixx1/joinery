@@ -132,5 +132,11 @@
   "settings.accent": "Colore accento",
   "settings.accent.hint": "Hex, es. #11AA11",
   "settings.language": "Lingua",
-  "settings.dark_theme": "Tema scuro"
+  "settings.color.accent": "Pulsanti e accenti",
+  "settings.color.background": "Sfondo dell'app",
+  "settings.color.sidebar": "Barra laterale",
+  "settings.color.cards": "Schede e superfici",
+  "settings.color.text": "Testo",
+  "settings.pal.dark": "Tavolozza scura",
+  "settings.pal.light": "Tavolozza chiara"
 }

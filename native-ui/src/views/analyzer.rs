@@ -9,14 +9,12 @@ use crate::palette;
 use crate::views::{btn, card, empty_state, error_box, muted, recent_block, text_color};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
     let a = &app.ana;
 
     if a.folder.is_none() && a.analysis.is_none() {
         let mut col = column![].spacing(16).width(Length::Fill);
         col = col.push(empty_state(
-            dark,
             crate::icons::pie_chart,
             tr(lang, "tool.analyzer"),
             tr(lang, "empty.analyzer.hint"),
@@ -27,7 +25,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         ));
         if !app.ana_recent.is_empty() {
             col = col.push(recent_block(
-                dark,
                 tr(lang, "empty.recent"),
                 &app.ana_recent,
                 |p| Msg::Analyzer(AnaMsg::Folder(Some(p))),
@@ -45,21 +42,18 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let mut col = column![].spacing(16).width(Length::Fill);
 
     col = col.push(card(
-        dark,
         row![
             btn(
-                dark,
                 tr(lang, "common.chooseFolder"),
                 Msg::Analyzer(AnaMsg::ChooseFolder)
             ),
             text(folder_text)
                 .size(12)
                 .font(font::Font::MONOSPACE)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fill)
                 .wrapping(iced::widget::text::Wrapping::Word),
             btn(
-                dark,
                 &if a.busy {
                     tr(lang, "common.loading").to_string()
                 } else {
@@ -73,11 +67,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     ));
 
     if let Some(err) = &a.error {
-        col = col.push(error_box(dark, err));
+        col = col.push(error_box(err));
     }
 
     if let Some(analysis) = &a.analysis {
-        let s = palette::scheme(dark);
+        let s = palette::scheme();
 
         let totals = text(format!(
             "{}: {} · {} {} · {} {}",
@@ -89,7 +83,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             tr(lang, "common.folders"),
         ))
         .size(12)
-        .style(muted(dark));
+        .style(muted());
 
         let max_size = analysis.entries.iter().map(|e| e.size).max().unwrap_or(0);
         let mut entries = column![].spacing(0).width(Length::Fill);
@@ -115,7 +109,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                             .width(Length::Fill)
                             .height(8.0)
                             .style(move |_| {
-                                let s = palette::scheme(dark);
+                                let s = palette::scheme();
                                 progress_bar::Style {
                                     background: s.surface_hover.into(),
                                     bar: if is_largest {
@@ -148,7 +142,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         String::new()
                     })
                     .size(12)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::Fixed(70.0)),
                 ]
                 .spacing(8)
@@ -165,7 +159,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     text(path_str)
                         .size(12)
                         .font(font::Font::MONOSPACE)
-                        .style(muted(dark))
+                        .style(muted())
                         .width(Length::Fill)
                         .wrapping(iced::widget::text::Wrapping::Word),
                     text(format_bytes(file.size))
@@ -178,9 +172,8 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             );
         }
 
-        col = col.push(card(dark, totals));
+        col = col.push(card(totals));
         col = col.push(card(
-            dark,
             column![
                 text(tr(lang, "analyzer.entries")).size(15),
                 scrollable(entries).height(Length::Fixed(320.0)),
@@ -190,7 +183,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         ));
         if !analysis.largest.is_empty() {
             col = col.push(card(
-                dark,
                 column![text(tr(lang, "analyzer.largest")).size(15), largest,]
                     .spacing(8)
                     .width(Length::Fill),

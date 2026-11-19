@@ -7,15 +7,12 @@ use crate::palette;
 use crate::views::{card, muted, text_color};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
 
     let amount = column![
         text("$5").size(28).style(text_color(s.accent)),
-        text(tr(lang, "support.amountNote"))
-            .size(12)
-            .style(muted(dark)),
+        text(tr(lang, "support.amountNote")).size(12).style(muted()),
         column![
             point("support.point1", lang),
             point("support.point2", lang),
@@ -28,7 +25,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         }),
         text(tr(lang, "support.noPressure"))
             .size(12)
-            .style(muted(dark))
+            .style(muted())
             .wrapping(iced::widget::text::Wrapping::Word),
     ]
     .spacing(12)
@@ -38,17 +35,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         "Ko-fi",
         "ko-fi.com/notfst",
         "https://ko-fi.com/notfst",
-        dark,
     )]
     .spacing(8);
 
     column![card(
-        dark,
         column![
             text(tr(lang, "support.title")).size(20),
-            text(tr(lang, "support.subtitle"))
-                .size(13)
-                .style(muted(dark)),
+            text(tr(lang, "support.subtitle")).size(13).style(muted()),
             container(amount)
                 .width(Length::Fixed(480.0))
                 .padding(20)
@@ -84,12 +77,11 @@ fn link_row(
     label: &'static str,
     display_url: &'static str,
     open_url: &'static str,
-    dark: bool,
 ) -> Element<'static, Msg> {
     button(
         row![
             text(label).size(13),
-            text(display_url).size(12).style(muted(dark)),
+            text(display_url).size(12).style(muted()),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
@@ -98,17 +90,17 @@ fn link_row(
     .style(move |_, status| {
         let mut st = button::Style {
             background: Some(Color::TRANSPARENT.into()),
-            text_color: palette::scheme(dark).text,
+            text_color: palette::scheme().text,
             border: iced::Border {
-                color: palette::scheme(dark).border,
+                color: palette::scheme().border,
                 width: 1.0,
                 radius: 8.0.into(),
             },
             shadow: Default::default(),
         };
         if let button::Status::Hovered = status {
-            st.background = Some(palette::scheme(dark).surface_hover.into());
-            st.border.color = palette::scheme(dark).accent;
+            st.background = Some(palette::scheme().surface_hover.into());
+            st.border.color = palette::scheme().accent;
         }
         st
     })

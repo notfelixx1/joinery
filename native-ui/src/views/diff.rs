@@ -10,10 +10,9 @@ use crate::palette;
 use crate::views::{btn, btn_primary, card, error_box, muted, text_color};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
     let d = &app.diff;
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
 
     let mut col = column![].spacing(16).width(Length::Fill);
 
@@ -21,13 +20,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         row![
             text(tr(lang, "dev.oldText"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fill),
-            btn(
-                dark,
-                tr(lang, "dev.loadFile"),
-                Msg::Diff(DiffMsg::Load(true))
-            ),
+            btn(tr(lang, "dev.loadFile"), Msg::Diff(DiffMsg::Load(true))),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
@@ -43,13 +38,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         row![
             text(tr(lang, "dev.newText"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fill),
-            btn(
-                dark,
-                tr(lang, "dev.loadFile"),
-                Msg::Diff(DiffMsg::Load(false))
-            ),
+            btn(tr(lang, "dev.loadFile"), Msg::Diff(DiffMsg::Load(false))),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
@@ -66,7 +57,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let mut actions = row![
         btn_primary(
-            dark,
             &if d.busy {
                 tr(lang, "common.loading").to_string()
             } else {
@@ -78,7 +68,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 None
             },
         ),
-        btn(dark, tr(lang, "common.clear"), Msg::Diff(DiffMsg::Clear)),
+        btn(tr(lang, "common.clear"), Msg::Diff(DiffMsg::Clear)),
         iced::widget::horizontal_space(),
     ]
     .spacing(8)
@@ -117,10 +107,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     controls = controls.push(actions);
 
     if let Some(err) = &d.error {
-        controls = controls.push(error_box(dark, err));
+        controls = controls.push(error_box(err));
     }
 
-    col = col.push(card(dark, controls));
+    col = col.push(card(controls));
 
     if let Some(result) = &d.result {
         let mut rows = column![].spacing(0).width(Length::Fill);
@@ -135,12 +125,12 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     text(row_data.old_line.map(|n| n.to_string()).unwrap_or_default())
                         .size(11)
                         .font(font::Font::MONOSPACE)
-                        .style(muted(dark))
+                        .style(muted())
                         .width(Length::Fixed(40.0)),
                     text(row_data.new_line.map(|n| n.to_string()).unwrap_or_default())
                         .size(11)
                         .font(font::Font::MONOSPACE)
-                        .style(muted(dark))
+                        .style(muted())
                         .width(Length::Fixed(40.0)),
                     text(format!("{}{}", sign, row_data.text))
                         .size(12)
@@ -153,7 +143,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .padding([2, 8]),
             );
         }
-        col = col.push(card(dark, scrollable(rows).height(Length::Fixed(420.0))));
+        col = col.push(card(scrollable(rows).height(Length::Fixed(420.0))));
     }
 
     col.into()

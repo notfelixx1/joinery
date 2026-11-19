@@ -132,5 +132,11 @@
   "settings.accent": "Колір акценту",
   "settings.accent.hint": "Hex, наприклад #11AA11",
   "settings.language": "Мова",
-  "settings.dark_theme": "Темна тема"
+  "settings.color.accent": "Кнопки та акценти",
+  "settings.color.background": "Фон застосунку",
+  "settings.color.sidebar": "Бічна панель",
+  "settings.color.cards": "Картки та панелі",
+  "settings.color.text": "Текст",
+  "settings.pal.dark": "Темна палітра",
+  "settings.pal.light": "Світла палітра"
 }

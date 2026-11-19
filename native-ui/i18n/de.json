@@ -132,5 +132,11 @@
   "settings.accent": "Akzentfarbe",
   "settings.accent.hint": "Hex, z. B. #11AA11",
   "settings.language": "Sprache",
-  "settings.dark_theme": "Dunkles Design"
+  "settings.color.accent": "Schaltflächen & Akzente",
+  "settings.color.background": "App-Hintergrund",
+  "settings.color.sidebar": "Seitenleiste",
+  "settings.color.cards": "Karten & Flächen",
+  "settings.color.text": "Text",
+  "settings.pal.dark": "Dunkle Palette",
+  "settings.pal.light": "Helle Palette"
 }

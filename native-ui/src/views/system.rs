@@ -6,7 +6,6 @@ use crate::i18n::tr;
 use crate::views::{card, muted};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
 
     let os = match std::env::consts::OS {
@@ -17,16 +16,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     };
 
     let info = column![
-        info_row(lang, dark, "system.os", os.to_string()),
+        info_row(lang, "system.os", os.to_string()),
+        info_row(lang, "system.arch", std::env::consts::ARCH.to_string()),
         info_row(
             lang,
-            dark,
-            "system.arch",
-            std::env::consts::ARCH.to_string()
-        ),
-        info_row(
-            lang,
-            dark,
             "system.version",
             format!("Joinery Tools v{} (native)", env!("CARGO_PKG_VERSION"))
         ),
@@ -36,21 +29,19 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let mut col = column![].spacing(16).width(Length::Fill);
     col = col.push(card(
-        dark,
         column![text(tr(lang, "system.info")).size(15), info,]
             .spacing(8)
             .width(Length::Fill),
     ));
     col = col.push(card(
-        dark,
         row![
             text("v0.2")
                 .size(12)
                 .font(font::Font::MONOSPACE)
-                .style(muted(dark)),
+                .style(muted()),
             text(tr(lang, "system.coming"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fill)
                 .wrapping(iced::widget::text::Wrapping::Word),
         ]
@@ -61,16 +52,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     col.into()
 }
 
-fn info_row(
-    lang: crate::i18n::Lang,
-    dark: bool,
-    key: &'static str,
-    value: String,
-) -> Element<'static, Msg> {
+fn info_row(lang: crate::i18n::Lang, key: &'static str, value: String) -> Element<'static, Msg> {
     row![
         text(tr(lang, key))
             .size(13)
-            .style(muted(dark))
+            .style(muted())
             .width(Length::Fixed(220.0)),
         text(value).size(13),
     ]

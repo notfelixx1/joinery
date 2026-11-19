@@ -8,14 +8,12 @@ use crate::i18n::{fmt, tr};
 use crate::views::{btn, btn_danger, card, empty_state, error_box, muted, ok_box, recent_block};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
     let d = &app.dup;
 
     if d.folder.is_none() && d.result.is_none() && !d.scanning {
         let mut col = column![].spacing(16).width(Length::Fill);
         col = col.push(empty_state(
-            dark,
             crate::icons::copy,
             tr(lang, "tool.duplicates"),
             tr(lang, "empty.duplicates.hint"),
@@ -26,7 +24,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         ));
         if !app.dup_recent.is_empty() {
             col = col.push(recent_block(
-                dark,
                 tr(lang, "empty.recent"),
                 &app.dup_recent,
                 |p| Msg::Duplicates(DupMsg::Folder(Some(p))),
@@ -61,26 +58,24 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let mut col = column![].spacing(16).width(Length::Fill);
 
     col = col.push(card(
-        dark,
         column![
             row![
                 btn(
-                    dark,
                     tr(lang, "common.chooseFolder"),
                     Msg::Duplicates(DupMsg::ChooseFolder)
                 ),
                 text(folder_text)
                     .size(12)
                     .font(font::Font::MONOSPACE)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::Fill)
                     .wrapping(iced::widget::text::Wrapping::Word),
-                text(tr(lang, "dup.minSize")).size(11).style(muted(dark)),
+                text(tr(lang, "dup.minSize")).size(11).style(muted()),
                 text_input("1", &d.min_size)
                     .on_input(|v| Msg::Duplicates(DupMsg::MinSize(v)))
                     .size(13)
                     .width(Length::Fixed(90.0)),
-                btn_primary_scan(dark, lang, d.folder.is_some() && !d.scanning),
+                btn_primary_scan(lang, d.folder.is_some() && !d.scanning),
             ]
             .spacing(10)
             .align_y(Alignment::Center),
@@ -88,7 +83,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 let template = tr(lang, "dup.scanning");
                 row![text(fmt(template, &[("n", d.scanned.to_string())]))
                     .size(12)
-                    .style(muted(dark))]
+                    .style(muted())]
             } else {
                 row![]
             }
@@ -102,10 +97,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     ));
 
     if let Some(err) = &d.error {
-        col = col.push(error_box(dark, err));
+        col = col.push(error_box(err));
     }
     if let Some(note) = &d.note {
-        col = col.push(ok_box(dark, note));
+        col = col.push(ok_box(note));
     }
 
     if let Some(result) = &d.result {
@@ -145,10 +140,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     line
                 })
                 .size(12)
-                .style(muted(dark)),
+                .style(muted()),
                 iced::widget::horizontal_space(),
                 btn_danger(
-                    dark,
                     &format!(
                         "{} ({})",
                         fmt(
@@ -169,13 +163,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         );
 
         if result.groups.is_empty() {
-            results = results.push(
-                text(tr(lang, "common.noResults"))
-                    .size(13)
-                    .style(muted(dark)),
-            );
+            results = results.push(text(tr(lang, "common.noResults")).size(13).style(muted()));
         } else {
-            results = results.push(text(tr(lang, "dup.keepHint")).size(11).style(muted(dark)));
+            results = results.push(text(tr(lang, "dup.keepHint")).size(11).style(muted()));
 
             let mut groups_col = column![].spacing(12).width(Length::Fill);
             for (index, group) in result.groups.iter().enumerate() {
@@ -194,7 +184,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                             text(path.clone())
                                 .size(12)
                                 .font(font::Font::MONOSPACE)
-                                .style(muted(dark))
+                                .style(muted())
                                 .width(Length::Fill)
                                 .wrapping(iced::widget::text::Wrapping::Word),
                         ]
@@ -204,7 +194,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     );
                 }
                 groups_col = groups_col.push(card(
-                    dark,
                     column![
                         row![
                             text(format!("#{}", index + 1))
@@ -213,11 +202,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                             text(format_bytes(group.size)).size(12),
                             text(format!("× {}", group.files.len()))
                                 .size(12)
-                                .style(muted(dark)),
+                                .style(muted()),
                             text(format!("{}…", &group.hash[..12.min(group.hash.len())]))
                                 .size(12)
                                 .font(font::Font::MONOSPACE)
-                                .style(muted(dark)),
+                                .style(muted()),
                         ]
                         .spacing(8)
                         .align_y(Alignment::Center),
@@ -230,16 +219,15 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             results = results.push(scrollable(groups_col).height(Length::Fixed(380.0)));
         }
 
-        col = col.push(card(dark, column![results].spacing(12).width(Length::Fill)));
+        col = col.push(card(column![results].spacing(12).width(Length::Fill)));
     }
 
     col.into()
 }
 
-fn btn_primary_scan(dark: bool, lang: crate::i18n::Lang, enabled: bool) -> Element<'static, Msg> {
+fn btn_primary_scan(lang: crate::i18n::Lang, enabled: bool) -> Element<'static, Msg> {
     let label = tr(lang, "common.scan").to_string();
     crate::views::btn_primary(
-        dark,
         &label,
         if enabled {
             Some(Msg::Duplicates(DupMsg::Scan))

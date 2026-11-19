@@ -13,15 +13,13 @@ use crate::views::{
 };
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
     let r = &app.ren;
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
 
     if r.folder.is_none() {
         let mut col = column![].spacing(16).width(Length::Fill);
         col = col.push(empty_state(
-            dark,
             crate::icons::tag,
             tr(lang, "tool.renamer"),
             tr(lang, "empty.renamer.hint"),
@@ -32,7 +30,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         ));
         if !app.ren_recent.is_empty() {
             col = col.push(recent_block(
-                dark,
                 tr(lang, "empty.recent"),
                 &app.ren_recent,
                 |p| Msg::Renamer(RenMsg::Folder(Some(p))),
@@ -51,21 +48,18 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let left = column![
         field(
-            dark,
             tr(lang, "renamer.find"),
             text_input("photo", &r.find)
                 .on_input(|v| Msg::Renamer(RenMsg::Find(v)))
                 .size(13),
         ),
         field(
-            dark,
             tr(lang, "renamer.prefix"),
             text_input("", &r.prefix)
                 .on_input(|v| Msg::Renamer(RenMsg::Prefix(v)))
                 .size(13),
         ),
         field(
-            dark,
             tr(lang, "renamer.newExt"),
             text_input("jpg", &r.new_ext)
                 .on_input(|v| Msg::Renamer(RenMsg::NewExt(v)))
@@ -77,21 +71,18 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
     let right = column![
         field(
-            dark,
             tr(lang, "renamer.replace"),
             text_input("vacation", &r.replace)
                 .on_input(|v| Msg::Renamer(RenMsg::Replace(v)))
                 .size(13),
         ),
         field(
-            dark,
             tr(lang, "renamer.suffix"),
             text_input("", &r.suffix)
                 .on_input(|v| Msg::Renamer(RenMsg::Suffix(v)))
                 .size(13),
         ),
         field(
-            dark,
             tr(lang, "renamer.pattern"),
             text_input("photo_{n:3}", &r.pattern)
                 .on_input(|v| Msg::Renamer(RenMsg::Pattern(v)))
@@ -102,22 +93,19 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     .width(Length::Fill);
 
     let top = card(
-        dark,
         column![
             row![
                 btn(
-                    dark,
                     tr(lang, "common.chooseFolder"),
                     Msg::Renamer(RenMsg::ChooseFolder)
                 ),
                 text(folder_text)
                     .size(12)
                     .font(font::Font::MONOSPACE)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::Fill)
                     .wrapping(iced::widget::text::Wrapping::Word),
                 btn_primary(
-                    dark,
                     &if r.busy {
                         tr(lang, "common.loading").to_string()
                     } else {
@@ -135,7 +123,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             row![left, right].spacing(12).width(Length::Fill),
             text(tr(lang, "renamer.pattern.hint"))
                 .size(12)
-                .style(muted(dark)),
+                .style(muted()),
             row![
                 checkbox(tr(lang, "renamer.subfolders"), r.include_subfolders)
                     .on_toggle(|v| Msg::Renamer(RenMsg::Subfolders(v)))
@@ -158,10 +146,10 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     col = col.push(top);
 
     if let Some(err) = &r.error {
-        col = col.push(error_box(dark, err));
+        col = col.push(error_box(err));
     }
     if let Some(note) = &r.note {
-        col = col.push(ok_box(dark, note));
+        col = col.push(ok_box(note));
     }
 
     if let Some(plan) = &r.plan {
@@ -171,19 +159,16 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             row![
                 text(tr(lang, "common.name"))
                     .size(11)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::FillPortion(4)),
-                text("→")
-                    .size(11)
-                    .style(muted(dark))
-                    .width(Length::Fixed(24.0)),
+                text("→").size(11).style(muted()).width(Length::Fixed(24.0)),
                 text(tr(lang, "common.name") /* target */)
                     .size(11)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::FillPortion(2)),
                 text(tr(lang, "common.status"))
                     .size(11)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::Fixed(110.0)),
             ]
             .padding([8, 8]),
@@ -206,10 +191,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         .font(font::Font::MONOSPACE)
                         .width(Length::FillPortion(4))
                         .wrapping(iced::widget::text::Wrapping::Word),
-                    text("→")
-                        .size(12)
-                        .style(muted(dark))
-                        .width(Length::Fixed(24.0)),
+                    text("→").size(12).style(muted()).width(Length::Fixed(24.0)),
                     text(if unchanged {
                         "="
                     } else {
@@ -232,13 +214,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         }
 
         col = col.push(card(
-            dark,
             column![
                 text(tr(lang, "renamer.plan")).size(15),
                 scrollable(rows).height(Length::Fixed(340.0)),
                 row![
                     btn_primary(
-                        dark,
                         &format!("{} ({})", tr(lang, "common.apply"), r.ready_count),
                         if !r.busy && r.ready_count > 0 && !r.has_conflicts {
                             Some(Msg::Renamer(RenMsg::Apply))
@@ -252,7 +232,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         ""
                     })
                     .size(12)
-                    .style(muted(dark)),
+                    .style(muted()),
                 ]
                 .spacing(8)
                 .align_y(Alignment::Center)
@@ -276,11 +256,9 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             ],
         );
         col = col.push(card(
-            dark,
             row![
-                ok_box(dark, &summary),
+                ok_box(&summary),
                 btn_danger(
-                    dark,
                     tr(lang, "common.undo"),
                     if r.journal.is_some() && !r.busy {
                         Some(Msg::Renamer(RenMsg::Undo))

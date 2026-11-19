@@ -10,12 +10,10 @@ use crate::palette;
 use crate::views::{btn_danger, card, empty_state, muted, text_color};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
 
     if app.history.is_empty() {
         return empty_state(
-            dark,
             crate::icons::clock,
             tr(lang, "nav.history"),
             tr(lang, "history.empty"),
@@ -28,7 +26,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         col = col.push(
             text(note.to_string())
                 .size(12)
-                .style(text_color(palette::scheme(dark).danger)),
+                .style(text_color(palette::scheme().danger)),
         );
     }
 
@@ -37,15 +35,15 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         row![
             text(tr(lang, "history.date"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fixed(120.0)),
             text(tr(lang, "history.operation"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fill),
             text(tr(lang, "common.files"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fixed(100.0)),
             text("").size(12).width(Length::Fixed(110.0)),
         ]
@@ -69,12 +67,11 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         let action: Element<'_, Msg> = if entry.undone {
             text(tr(lang, "history.undone"))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fixed(110.0))
                 .into()
         } else {
             btn_danger(
-                dark,
                 tr(lang, "common.undo"),
                 Some(Msg::History(HistMsg::Journal(entry.id))),
             )
@@ -84,7 +81,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 text(when)
                     .size(12)
                     .font(font::Font::MONOSPACE)
-                    .style(muted(dark))
+                    .style(muted())
                     .width(Length::Fixed(120.0)),
                 text(operation).size(13).width(Length::Fill),
                 text(fmt(
@@ -92,7 +89,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     &[("n", entry.op_count.to_string())]
                 ))
                 .size(12)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fixed(100.0)),
                 action,
             ]
@@ -102,6 +99,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         );
     }
 
-    col = col.push(card(dark, scrollable(rows).height(Length::Fixed(520.0))));
+    col = col.push(card(scrollable(rows).height(Length::Fixed(520.0))));
     col.into()
 }

@@ -49,13 +49,11 @@ impl From<checksum::Algorithm> for Alg {
 const ALGS: [Alg; 3] = [Alg::Sha256, Alg::Sha1, Alg::Md5];
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
     let lang = app.lang;
     let c = &app.cks;
 
     if c.paths.is_empty() && c.results.is_none() {
         return empty_state(
-            dark,
             crate::icons::shield_check,
             tr(lang, "tool.checksum"),
             tr(lang, "empty.checksum.hint"),
@@ -66,7 +64,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         );
     }
 
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
 
     let names: String = if c.paths.is_empty() {
         tr(lang, "checksum.pickFirst").to_string()
@@ -87,22 +85,18 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     let mut col = column![].spacing(16).width(Length::Fill);
 
     col = col.push(card(
-        dark,
         row![
             btn(
-                dark,
                 tr(lang, "common.chooseFiles"),
                 Msg::Checksum(CksMsg::ChooseFiles)
             ),
             text(names)
                 .size(12)
                 .font(font::Font::MONOSPACE)
-                .style(muted(dark))
+                .style(muted())
                 .width(Length::Fill)
                 .wrapping(iced::widget::text::Wrapping::Word),
-            text(tr(lang, "checksum.algorithm"))
-                .size(11)
-                .style(muted(dark)),
+            text(tr(lang, "checksum.algorithm")).size(11).style(muted()),
             iced::widget::pick_list(
                 ALGS,
                 Some(<checksum::Algorithm as Into<Alg>>::into(c.algorithm)),
@@ -113,7 +107,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .size(14)
                 .on_toggle(|v| Msg::Checksum(CksMsg::Autocopy(v))),
             btn_primary(
-                dark,
                 &if c.busy {
                     tr(lang, "common.loading").to_string()
                 } else {
@@ -131,7 +124,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     ));
 
     if let Some(err) = &c.error {
-        col = col.push(error_box(dark, err));
+        col = col.push(error_box(err));
     }
 
     if let Some(results) = &c.results {
@@ -148,9 +141,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
         body = body.push(
             column![
-                text(tr(lang, "checksum.verify"))
-                    .size(11)
-                    .style(muted(dark)),
+                text(tr(lang, "checksum.verify")).size(11).style(muted()),
                 text_input(tr(lang, "checksum.verify.hint"), &c.expected)
                     .on_input(|v| Msg::Checksum(CksMsg::Expected(v)))
                     .size(13)
@@ -179,23 +170,22 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
         let mut rows = column![].spacing(0).width(Length::Fill);
         for item in results {
-            rows = rows.push(result_row(dark, lang, c.copied.as_deref(), item));
+            rows = rows.push(result_row(lang, c.copied.as_deref(), item));
         }
         body = body.push(scrollable(rows).height(Length::Fixed(320.0)));
 
-        col = col.push(card(dark, body));
+        col = col.push(card(body));
     }
 
     col.into()
 }
 
 fn result_row<'a>(
-    dark: bool,
     lang: crate::i18n::Lang,
     copied: Option<&'a str>,
     item: &'a ChecksumItem,
 ) -> Element<'a, Msg> {
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
     let name = item
         .path
         .to_string_lossy()
@@ -228,7 +218,6 @@ fn result_row<'a>(
     };
     let copy_cell: Element<Msg> = if item.hash.is_some() {
         crate::views::btn(
-            dark,
             copy_label,
             Msg::Checksum(CksMsg::Copy(item.hash.clone().unwrap_or_default())),
         )

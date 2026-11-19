@@ -8,13 +8,15 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Settings page** — a gear button at the bottom of the sidebar opens
-  grouped settings. Appearance: four accent presets and a live
-  `#RRGGBB` hex input (typed like `#11AA11`) that repaints the whole
-  app instantly — buttons, links, progress bar, selections — plus the
-  dark-theme and language switches. Functionality: the checksum
-  auto-copy toggle moved here from the tool page. The accent is
-  persisted and survives restarts; text-on-accent contrast is computed
-  from luminance.
+  grouped settings. Appearance: two palette presets (dark and light)
+  plus five individually editable colors — buttons & accents, app
+  background, sidebar, cards & surfaces, text — each as a live
+  `#RRGGBB` hex input (typed like `#11AA11`) with a preview swatch.
+  Hover/active surfaces, borders, dividers and muted text are derived
+  automatically, so any recolor stays coherent; text-on-accent
+  contrast is computed from luminance. Everything persists across
+  restarts. Functionality: the checksum auto-copy toggle moved here
+  from the tool page.
 
 - **Window memory** — the size and position come back after a
   restart; a maximized session keeps its saved normal-size geometry.
@@ -29,6 +31,10 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Themes removed** — the dark/light toggle (and the `--dark` /
+  `--light` flags) are replaced by the user palette: the background,
+  sidebar, cards and text are colored individually, so a theme is just
+  a palette preset now. The language picker stays in the top bar.
 - **Diff engine** — the external `imara-diff` (Histogram) is replaced
   by an in-house contiguity-first engine: anchors are maximal common
   runs discovered through line-trigram seeds, selected by a

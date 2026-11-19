@@ -47,8 +47,6 @@ const TOOLS: [ToolCard; 6] = [
 ];
 
 pub fn view(app: &App) -> Element<'_, Msg> {
-    let dark = app.dark;
-
     let hero = column![
         text(tr(app.lang, "home.hero.title"))
             .size(26)
@@ -60,13 +58,13 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             .wrapping(iced::widget::text::Wrapping::Word),
         text(tr(app.lang, "home.hero.subtitle"))
             .size(14)
-            .style(muted(dark))
+            .style(muted())
             .width(Length::Fill)
             .wrapping(iced::widget::text::Wrapping::Word),
         row![
-            badge(dark, tr(app.lang, "home.badges.offline")),
-            badge(dark, tr(app.lang, "home.badges.privacy")),
-            badge(dark, tr(app.lang, "home.badges.free")),
+            badge(tr(app.lang, "home.badges.offline")),
+            badge(tr(app.lang, "home.badges.privacy")),
+            badge(tr(app.lang, "home.badges.free")),
         ]
         .spacing(8),
     ]
@@ -98,8 +96,8 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         .into()
 }
 
-fn badge<'a>(dark: bool, label: &'a str) -> Element<'a, Msg> {
-    let s = palette::scheme(dark);
+fn badge<'a>(label: &'a str) -> Element<'a, Msg> {
+    let s = palette::scheme();
     container(text(label).size(12))
         .padding([8, 12])
         .style(move |_| container::Style {
@@ -116,8 +114,7 @@ fn badge<'a>(dark: bool, label: &'a str) -> Element<'a, Msg> {
 }
 
 fn tool_card(app: &App, tool: &ToolCard) -> Element<'static, Msg> {
-    let dark = app.dark;
-    let s = palette::scheme(dark);
+    let s = palette::scheme();
     let title = tr(app.lang, tool.key);
     let desc = tr(app.lang, &format!("{key}.desc", key = tool.key));
     let page = tool.page;
@@ -145,7 +142,7 @@ fn tool_card(app: &App, tool: &ToolCard) -> Element<'static, Msg> {
                 text(title).size(15),
                 text(desc)
                     .size(12)
-                    .style(muted(dark))
+                    .style(muted())
                     .wrapping(iced::widget::text::Wrapping::Word),
             ]
             .spacing(4)
@@ -158,12 +155,12 @@ fn tool_card(app: &App, tool: &ToolCard) -> Element<'static, Msg> {
     )
     .width(Length::Fill)
     .padding(16)
-    .style(move |_| card_style(dark));
+    .style(move |_| card_style());
 
     button(inner)
         .width(Length::Fill)
         .style(move |_, status| {
-            let mut st = card_style(dark);
+            let mut st = card_style();
             if let button::Status::Hovered = status {
                 st.border.color = s.accent;
             }

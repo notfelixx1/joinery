@@ -67,16 +67,14 @@ pub enum Msg {
     AnimTick,
     FileTool(FileTool),
     DevTool(DevTool),
-    ToggleTheme,
     SetLang(Lang),
     OpenUrl(&'static str),
 
-    /// Settings: typed accent hex (applied live when valid).
-    AccentInput(String),
-    /// Settings: one of the preset accent swatches.
-    AccentPreset(iced::Color),
-    /// Settings: theme choice from the checkbox.
-    SetDark(bool),
+    /// Settings: typed hex for one of the color slots (applied live
+    /// when valid).
+    ColorInput(crate::palette::ColorSlot, String),
+    /// Settings: a full palette preset.
+    PalettePreset(crate::palette::UserColors),
     /// Window close interception: geometry is saved, then the window
     /// actually closes.
     CloseRequested(iced::window::Id),
@@ -106,7 +104,6 @@ pub struct App {
     pub page: Page,
     pub file_tool: FileTool,
     pub dev_tool: DevTool,
-    pub dark: bool,
     pub lang: Lang,
     pub db: Option<Connection>,
     /// The currently expanded sidebar section, if any.
@@ -117,12 +114,12 @@ pub struct App {
     pub progress: Option<f32>,
     /// Auto-copy the checksum hash to the clipboard (saved setting).
     pub cks_autocopy: bool,
+    /// Raw hex texts of the five color inputs, by slot.
+    pub color_inputs: std::collections::HashMap<crate::palette::ColorSlot, String>,
     /// Window position captured on the close request, handed to the
     /// size step before both are persisted.
     pub close_pos: Option<iced::Point>,
     /// Raw text of the accent hex input on the Settings page.
-    pub accent_input: String,
-
     pub history: Vec<undo::JournalEntry>,
     pub history_note: Option<String>,
     pub ren_recent: Vec<PathBuf>,
@@ -143,7 +140,6 @@ pub struct Options {
     pub page: Option<Page>,
     pub file_tool: Option<FileTool>,
     pub dev_tool: Option<DevTool>,
-    pub dark: Option<bool>,
     pub lang: Option<Lang>,
     pub folder: Option<PathBuf>,
 }
@@ -166,7 +162,6 @@ Open directly on a tool:
   --support       Support
 
 Options:
-  --dark | --light    Theme (overrides the saved one)
   --lang en|ru|uk|es|de|fr|pt|it    Interface language
   --folder <path>     Preselect a folder for the file tool
   --help              Show this text
@@ -191,8 +186,6 @@ impl Options {
                 "--system" => opts.page = Some(Page::System),
                 "--support" => opts.page = Some(Page::Support),
                 "--settings" => opts.page = Some(Page::Settings),
-                "--dark" => opts.dark = Some(true),
-                "--light" => opts.dark = Some(false),
                 "--lang" => {
                     if let Some(v) = args.next() {
                         opts.lang = Some(Lang::from_str(&v));
@@ -307,7 +300,6 @@ impl App {
             let _ = undo::recover_pending(conn);
         }
 
-        let mut dark = false;
         let mut lang = Lang::En;
         let mut saved_page: Option<Page> = None;
         let mut saved_file_tool: Option<FileTool> = None;
@@ -325,8 +317,6 @@ impl App {
         if let Some(conn) = &db {
             // Settings are cosmetic — fall back to the defaults when
             // the storage errors out.
-            let theme = database::get_setting(conn, "theme").unwrap_or(None);
-            dark = theme.as_deref() == Some("dark");
             if let Some(v) = database::get_setting(conn, "lang").unwrap_or(None) {
                 lang = Lang::from_str(&v);
             }
@@ -347,15 +337,17 @@ impl App {
                 .unwrap_or(None)
                 .map(|v| v != "0")
                 .unwrap_or(true);
-            if let Some(v) = database::get_setting(conn, "accent_color").unwrap_or(None) {
-                if let Some(c) = crate::palette::parse_hex(&v) {
-                    crate::palette::set_accent(c);
+            // Restore the user palette: five color slots.
+            for slot in crate::palette::ColorSlot::ALL {
+                if let Some(v) = database::get_setting(conn, slot.key()).unwrap_or(None) {
+                    if let Some(c) = crate::palette::parse_hex(&v) {
+                        crate::palette::set_color(slot, c);
+                    }
                 }
             }
         }
 
         // Command-line overrides win over the saved settings.
-        dark = options.dark.unwrap_or(dark);
         lang = options.lang.unwrap_or(lang);
 
         // "Open where you left off": the last session comes back
@@ -379,10 +371,9 @@ impl App {
                 .unwrap_or(saved_dev_tool.unwrap_or(DevTool::JsonYaml)),
             cks_autocopy,
             nav_open,
-            accent_input: crate::palette::to_hex(crate::palette::accent()),
+            color_inputs: crate::palette::color_inputs(),
             progress: None,
             close_pos: None,
-            dark,
             lang,
             db,
             nav_reveal: None,
@@ -413,10 +404,6 @@ impl App {
         }
 
         (app, Task::none())
-    }
-
-    pub fn iced_theme(&self) -> iced::Theme {
-        iced::Theme::custom("Joinery".to_string(), crate::palette::palette(self.dark))
     }
 }
 
@@ -488,33 +475,29 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             persist_settings(&app.db, "page", page_code(Page::Developer));
             Task::none()
         }
-        Msg::ToggleTheme => {
-            app.dark = !app.dark;
-            persist_settings(&app.db, "theme", if app.dark { "dark" } else { "light" });
-            Task::none()
-        }
         Msg::SetLang(lang) => {
             app.lang = lang;
             persist_settings(&app.db, "lang", lang.code());
             Task::none()
         }
-        Msg::AccentInput(text) => {
+        Msg::ColorInput(slot, text) => {
             if let Some(color) = crate::palette::parse_hex(&text) {
-                crate::palette::set_accent(color);
-                persist_settings(&app.db, "accent_color", &crate::palette::to_hex(color));
+                crate::palette::set_color(slot, color);
+                persist_settings(&app.db, slot.key(), &crate::palette::to_hex(color));
             }
-            app.accent_input = text;
+            app.color_inputs.insert(slot, text);
             Task::none()
         }
-        Msg::AccentPreset(color) => {
-            crate::palette::set_accent(color);
-            persist_settings(&app.db, "accent_color", &crate::palette::to_hex(color));
-            app.accent_input = crate::palette::to_hex(color);
-            Task::none()
-        }
-        Msg::SetDark(dark) => {
-            app.dark = dark;
-            persist_settings(&app.db, "theme", if dark { "dark" } else { "light" });
+        Msg::PalettePreset(colors) => {
+            crate::palette::set_user_colors(colors);
+            for slot in crate::palette::ColorSlot::ALL {
+                persist_settings(
+                    &app.db,
+                    slot.key(),
+                    &crate::palette::to_hex(slot.get(&colors)),
+                );
+            }
+            app.color_inputs = crate::palette::color_inputs();
             Task::none()
         }
         Msg::CloseRequested(id) => {
@@ -613,7 +596,6 @@ pub(crate) fn test_app() -> App {
         page: Page::Home,
         file_tool: FileTool::Renamer,
         dev_tool: DevTool::JsonYaml,
-        dark: false,
         lang: Lang::En,
         db: None,
         nav_open: None,
@@ -621,7 +603,7 @@ pub(crate) fn test_app() -> App {
         progress: None,
         cks_autocopy: true,
         close_pos: None,
-        accent_input: crate::palette::to_hex(crate::palette::accent()),
+        color_inputs: crate::palette::color_inputs(),
         history: Vec::new(),
         history_note: None,
         ren_recent: Vec::new(),

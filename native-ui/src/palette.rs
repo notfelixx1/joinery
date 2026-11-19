@@ -1,10 +1,10 @@
-//! Brand palettes — calm, precise, dashboard-like.
+//! The user-owned palette — calm, precise, dashboard-like.
 //!
-//! The light theme follows the Lithic-style reference: white surfaces on
-//! a very light gray background, dark ink text, and a single accent the
-//! user can override (Settings → Appearance, a `#RRGGBB` hex value).
-//! The dark theme keeps the same structure with darker greys and a
-//! slightly lightened accent for contrast on dark surfaces.
+//! There are no themes: five user colors (accent, background, sidebar
+//! panel, cards, text) define the whole look, and everything else is
+//! derived — hover/active surfaces, borders, dividers, muted text — so
+//! any recolor stays coherent. Each color is editable in Settings →
+//! Appearance as a `#RRGGBB` hex and persisted across restarts.
 
 use std::sync::RwLock;
 
@@ -19,44 +19,144 @@ pub const fn rgb8(r: u8, g: u8, b: u8) -> Color {
     }
 }
 
-pub const INDIGO: Color = rgb8(0x4f, 0x46, 0xe5);
-
-pub const SLATE_50: Color = rgb8(0xf8, 0xfa, 0xfc);
-pub const SLATE_100: Color = rgb8(0xf1, 0xf5, 0xf9);
-pub const SLATE_200: Color = rgb8(0xe2, 0xe8, 0xf0);
-pub const SLATE_400: Color = rgb8(0x94, 0xa3, 0xb8);
-pub const SLATE_500: Color = rgb8(0x64, 0x74, 0x8b);
-pub const SLATE_800: Color = rgb8(0x1e, 0x29, 0x3b);
-pub const SLATE_900: Color = rgb8(0x0f, 0x17, 0x2a);
-
 pub const OK: Color = rgb8(0x10, 0xb9, 0x81);
-pub const OK_DARK: Color = rgb8(0x06, 0x95, 0x69);
 pub const DANGER: Color = rgb8(0xef, 0x44, 0x44);
-pub const DANGER_DARK: Color = rgb8(0xb9, 0x1c, 0x1c);
 pub const WARN: Color = rgb8(0xf5, 0x90, 0x18);
-pub const WARN_DARK: Color = rgb8(0xb4, 0x53, 0x09);
 
-/// Accent presets offered in Settings → Appearance.
-pub const ACCENT_PRESETS: [(&str, Color); 4] = [
-    ("#4F46E5", rgb8(0x4f, 0x46, 0xe5)),
-    ("#0D9488", rgb8(0x0d, 0x94, 0x88)),
-    ("#D97706", rgb8(0xd9, 0x77, 0x06)),
-    ("#E11D48", rgb8(0xe1, 0x1d, 0x48)),
-];
+/// The five colors the user can set individually.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UserColors {
+    /// Buttons, links, progress, selection highlights.
+    pub accent: Color,
+    /// App background.
+    pub background: Color,
+    /// Sidebar panel.
+    pub panel: Color,
+    /// Cards and content surfaces.
+    pub surface: Color,
+    /// Primary text.
+    pub text: Color,
+}
 
-/// The user accent, global so every view helper reads it without
-/// threading the value through a dozen closures. Replaced on startup
-/// from the saved setting and live while the user types a new hex.
-static ACCENT: RwLock<Color> = RwLock::new(INDIGO);
-
-pub fn set_accent(color: Color) {
-    if let Ok(mut slot) = ACCENT.write() {
-        *slot = color;
+/// Factory default — the classic dark look.
+impl Default for UserColors {
+    fn default() -> Self {
+        Self {
+            accent: rgb8(0x4f, 0x46, 0xe5),
+            background: rgb8(0x0f, 0x17, 0x2a),
+            panel: rgb8(0x0f, 0x17, 0x2a),
+            surface: rgb8(0x1e, 0x29, 0x3b),
+            text: rgb8(0xf1, 0xf5, 0xf9),
+        }
     }
 }
 
-pub fn accent() -> Color {
-    ACCENT.read().map(|c| *c).unwrap_or(INDIGO)
+impl UserColors {
+    /// The classic light look, as a one-click preset.
+    pub fn light() -> Self {
+        Self {
+            accent: rgb8(0x4f, 0x46, 0xe5),
+            background: rgb8(0xf8, 0xfa, 0xfc),
+            panel: rgb8(0xf8, 0xfa, 0xfc),
+            surface: rgb8(0xff, 0xff, 0xff),
+            text: rgb8(0x1e, 0x29, 0x3b),
+        }
+    }
+}
+
+/// Which of the five user colors a settings row edits.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ColorSlot {
+    Accent,
+    Background,
+    Panel,
+    Surface,
+    Text,
+}
+
+impl ColorSlot {
+    pub const ALL: [ColorSlot; 5] = [
+        ColorSlot::Accent,
+        ColorSlot::Background,
+        ColorSlot::Panel,
+        ColorSlot::Surface,
+        ColorSlot::Text,
+    ];
+
+    pub fn key(self) -> &'static str {
+        match self {
+            ColorSlot::Accent => "color_accent",
+            ColorSlot::Background => "color_background",
+            ColorSlot::Panel => "color_panel",
+            ColorSlot::Surface => "color_surface",
+            ColorSlot::Text => "color_text",
+        }
+    }
+
+    pub fn get(self, colors: &UserColors) -> Color {
+        match self {
+            ColorSlot::Accent => colors.accent,
+            ColorSlot::Background => colors.background,
+            ColorSlot::Panel => colors.panel,
+            ColorSlot::Surface => colors.surface,
+            ColorSlot::Text => colors.text,
+        }
+    }
+
+    /// The settings-page label key for this slot.
+    pub fn i18n_key(self) -> &'static str {
+        match self {
+            ColorSlot::Accent => "settings.color.accent",
+            ColorSlot::Background => "settings.color.background",
+            ColorSlot::Panel => "settings.color.sidebar",
+            ColorSlot::Surface => "settings.color.cards",
+            ColorSlot::Text => "settings.color.text",
+        }
+    }
+
+    pub fn set(self, colors: &mut UserColors, c: Color) {
+        match self {
+            ColorSlot::Accent => colors.accent = c,
+            ColorSlot::Background => colors.background = c,
+            ColorSlot::Panel => colors.panel = c,
+            ColorSlot::Surface => colors.surface = c,
+            ColorSlot::Text => colors.text = c,
+        }
+    }
+}
+
+/// The user palette, global so every view helper reads it without
+/// threading values through a dozen closures.
+static USER_COLORS: RwLock<UserColors> = RwLock::new(UserColors {
+    accent: rgb8(0x4f, 0x46, 0xe5),
+    background: rgb8(0x0f, 0x17, 0x2a),
+    panel: rgb8(0x0f, 0x17, 0x2a),
+    surface: rgb8(0x1e, 0x29, 0x3b),
+    text: rgb8(0xf1, 0xf5, 0xf9),
+});
+
+pub fn set_user_colors(colors: UserColors) {
+    if let Ok(mut slot) = USER_COLORS.write() {
+        *slot = colors;
+    }
+}
+
+pub fn set_color(slot: ColorSlot, c: Color) {
+    if let Ok(mut colors) = USER_COLORS.write() {
+        slot.set(&mut colors, c);
+    }
+}
+
+/// Hex input texts for all slots, from the current palette.
+pub fn color_inputs() -> std::collections::HashMap<ColorSlot, String> {
+    ColorSlot::ALL
+        .iter()
+        .map(|slot| (*slot, to_hex(slot.get(&user_colors()))))
+        .collect()
+}
+
+pub fn user_colors() -> UserColors {
+    USER_COLORS.read().map(|c| *c).unwrap_or_default()
 }
 
 /// Parse `#RRGGBB` (the `#` is optional, case-insensitive).
@@ -74,7 +174,7 @@ pub fn parse_hex(s: &str) -> Option<Color> {
     })
 }
 
-/// Format back to `#RRGGBB` (uppercase, for the settings input).
+/// Format back to `#RRGGBB` (uppercase, for the settings inputs).
 pub fn to_hex(c: Color) -> String {
     format!(
         "#{:02X}{:02X}{:02X}",
@@ -94,16 +194,11 @@ fn mix(base: Color, c: Color, t: f32) -> Color {
     }
 }
 
-/// Lighten toward white by `t`.
-fn lighten(c: Color, t: f32) -> Color {
-    mix(c, Color::WHITE, t)
-}
-
 /// Readable text color on top of `c` (relative luminance check).
-fn on_color(c: Color) -> Color {
+pub fn on_color_for(c: Color) -> Color {
     let lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
     if lum > 0.55 {
-        SLATE_900
+        rgb8(0x0f, 0x17, 0x2a)
     } else {
         rgb8(0xff, 0xff, 0xff)
     }
@@ -111,6 +206,7 @@ fn on_color(c: Color) -> Color {
 
 pub struct Scheme {
     pub background: Color,
+    pub panel: Color,
     pub surface: Color,
     pub surface_hover: Color,
     pub surface_active: Color,
@@ -126,42 +222,25 @@ pub struct Scheme {
     pub warn: Color,
 }
 
-pub fn scheme(dark: bool) -> Scheme {
-    let accent = accent();
-    if dark {
-        Scheme {
-            background: SLATE_900,
-            surface: SLATE_800,
-            surface_hover: rgb8(0x27, 0x35, 0x48),
-            surface_active: rgb8(0x31, 0x41, 0x55),
-            border: rgb8(0x3d, 0x4e, 0x64),
-            divider: rgb8(0x33, 0x45, 0x58),
-            text: SLATE_100,
-            text_muted: SLATE_400,
-            text_placeholder: SLATE_500,
-            accent: lighten(accent, 0.12),
-            accent_text: on_color(accent),
-            ok: OK,
-            danger: DANGER,
-            warn: WARN,
-        }
-    } else {
-        Scheme {
-            background: SLATE_50,
-            surface: rgb8(0xff, 0xff, 0xff),
-            surface_hover: SLATE_100,
-            surface_active: mix(rgb8(0xff, 0xff, 0xff), accent, 0.10),
-            border: SLATE_200,
-            divider: SLATE_200,
-            text: SLATE_800,
-            text_muted: SLATE_500,
-            text_placeholder: SLATE_400,
-            accent,
-            accent_text: on_color(accent),
-            ok: OK_DARK,
-            danger: DANGER_DARK,
-            warn: WARN_DARK,
-        }
+/// Derive the full scheme from the five user colors.
+pub fn scheme() -> Scheme {
+    let u = user_colors();
+    Scheme {
+        background: u.background,
+        panel: u.panel,
+        surface: u.surface,
+        surface_hover: mix(u.surface, u.text, 0.08),
+        surface_active: mix(u.surface, u.accent, 0.14),
+        border: mix(u.surface, u.text, 0.22),
+        divider: mix(u.surface, u.text, 0.15),
+        text: u.text,
+        text_muted: mix(u.text, u.background, 0.45),
+        text_placeholder: mix(u.text, u.background, 0.60),
+        accent: u.accent,
+        accent_text: on_color_for(u.accent),
+        ok: OK,
+        danger: DANGER,
+        warn: WARN,
     }
 }
 
@@ -178,8 +257,8 @@ impl Scheme {
 }
 
 /// Palette for the built-in iced theme engine.
-pub fn palette(dark: bool) -> iced::theme::Palette {
-    let scheme = scheme(dark);
+pub fn iced_palette() -> iced::theme::Palette {
+    let scheme = scheme();
     iced::theme::Palette {
         background: scheme.background,
         text: scheme.text,
@@ -205,19 +284,38 @@ mod tests {
     }
 
     #[test]
-    fn scheme_uses_the_global_accent() {
-        // Amber: luminance below the 0.55 threshold — white text.
-        set_accent(rgb8(0xd9, 0x77, 0x06));
-        let light = scheme(false);
-        assert_eq!(light.accent, rgb8(0xd9, 0x77, 0x06));
-        assert_eq!(light.accent_text, rgb8(0xff, 0xff, 0xff));
-        // A genuinely light accent flips the text to dark ink.
-        set_accent(rgb8(0xfa, 0xcc, 0x15));
-        assert_eq!(scheme(false).accent_text, SLATE_900);
-        // Dark surfaces lighten the accent for contrast.
-        set_accent(INDIGO);
-        let dark = scheme(true);
-        assert_eq!(dark.accent, lighten(INDIGO, 0.12));
-        assert_eq!(dark.accent_text, rgb8(0xff, 0xff, 0xff));
+    fn slot_set_and_get() {
+        let mut colors = UserColors::default();
+        ColorSlot::Panel.set(&mut colors, rgb8(0x11, 0x22, 0x33));
+        assert_eq!(ColorSlot::Panel.get(&colors), rgb8(0x11, 0x22, 0x33));
+        assert_eq!(ColorSlot::Accent.get(&colors), rgb8(0x4f, 0x46, 0xe5));
+    }
+
+    #[test]
+    fn derived_colors_follow_the_user_palette() {
+        set_user_colors(UserColors::default());
+        let s = scheme();
+        // Derived hover sits between surface and text.
+        assert_eq!(
+            s.surface_hover,
+            mix(rgb8(0x1e, 0x29, 0x3b), rgb8(0xf1, 0xf5, 0xf9), 0.08)
+        );
+        // Muted text sits between text and background.
+        assert_eq!(
+            s.text_muted,
+            mix(rgb8(0xf1, 0xf5, 0xf9), rgb8(0x0f, 0x17, 0x2a), 0.45)
+        );
+        // Light preset: hover moves the other way, still coherent.
+        set_user_colors(UserColors::light());
+        let s = scheme();
+        assert_eq!(
+            s.surface_hover,
+            mix(rgb8(0xff, 0xff, 0xff), rgb8(0x1e, 0x29, 0x3b), 0.08)
+        );
+        assert_eq!(s.accent_text, rgb8(0xff, 0xff, 0xff));
+        // A genuinely light accent flips the button text to dark ink.
+        set_color(ColorSlot::Accent, rgb8(0xfa, 0xcc, 0x15));
+        assert_eq!(scheme().accent_text, rgb8(0x0f, 0x17, 0x2a));
+        set_user_colors(UserColors::default());
     }
 }
