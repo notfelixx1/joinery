@@ -7,6 +7,15 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Settings page** — a gear button at the bottom of the sidebar opens
+  grouped settings. Appearance: four accent presets and a live
+  `#RRGGBB` hex input (typed like `#11AA11`) that repaints the whole
+  app instantly — buttons, links, progress bar, selections — plus the
+  dark-theme and language switches. Functionality: the checksum
+  auto-copy toggle moved here from the tool page. The accent is
+  persisted and survives restarts; text-on-accent contrast is computed
+  from luminance.
+
 - **Window memory** — the size and position come back after a
   restart; a maximized session keeps its saved normal-size geometry.
 - **Checksum auto-copy** — on by default: a single-file hash lands in

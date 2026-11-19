@@ -8,6 +8,7 @@ pub mod history;
 pub mod home;
 pub mod jsonyaml;
 pub mod renamer;
+pub mod settings;
 pub mod support;
 pub mod system;
 
@@ -779,6 +780,13 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
 
     col = col.push(iced::widget::vertical_space());
     col = col.push(divider(dark));
+    col = col.push(nav_button(
+        dark,
+        nav_icon(dark, app.page == Page::Settings, icons::settings()),
+        tr(app.lang, "nav.settings"),
+        app.page == Page::Settings,
+        Msg::Nav(Page::Settings),
+    ));
     col = col.push(
         column![
             text(tr(app.lang, "footer.license"))
@@ -849,6 +857,7 @@ fn topbar(app: &App) -> Element<'_, Msg> {
         Page::History => text(tr(app.lang, "nav.history")).size(20).into(),
         Page::System => text(tr(app.lang, "nav.system")).size(20).into(),
         Page::Support => text(tr(app.lang, "nav.support")).size(20).into(),
+        Page::Settings => text(tr(app.lang, "nav.settings")).size(20).into(),
     };
     row![
         title,
@@ -935,6 +944,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         Page::History => history::view(app),
         Page::System => system::view(app),
         Page::Support => support::view(app),
+        Page::Settings => settings::view(app),
     };
 
     let body: Element<Msg> = if empty {

@@ -41,6 +41,7 @@ pub enum Page {
     History,
     System,
     Support,
+    Settings,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +71,12 @@ pub enum Msg {
     SetLang(Lang),
     OpenUrl(&'static str),
 
+    /// Settings: typed accent hex (applied live when valid).
+    AccentInput(String),
+    /// Settings: one of the preset accent swatches.
+    AccentPreset(iced::Color),
+    /// Settings: theme choice from the checkbox.
+    SetDark(bool),
     /// Window close interception: geometry is saved, then the window
     /// actually closes.
     CloseRequested(iced::window::Id),
@@ -113,6 +120,8 @@ pub struct App {
     /// Window position captured on the close request, handed to the
     /// size step before both are persisted.
     pub close_pos: Option<iced::Point>,
+    /// Raw text of the accent hex input on the Settings page.
+    pub accent_input: String,
 
     pub history: Vec<undo::JournalEntry>,
     pub history_note: Option<String>,
@@ -181,6 +190,7 @@ impl Options {
                 "--home" => opts.page = Some(Page::Home),
                 "--system" => opts.page = Some(Page::System),
                 "--support" => opts.page = Some(Page::Support),
+                "--settings" => opts.page = Some(Page::Settings),
                 "--dark" => opts.dark = Some(true),
                 "--light" => opts.dark = Some(false),
                 "--lang" => {
@@ -230,6 +240,7 @@ pub(crate) fn page_code(page: Page) -> &'static str {
         Page::History => "history",
         Page::System => "system",
         Page::Support => "support",
+        Page::Settings => "settings",
     }
 }
 
@@ -241,6 +252,7 @@ pub(crate) fn page_from_code(v: &str) -> Option<Page> {
         "history" => Some(Page::History),
         "system" => Some(Page::System),
         "support" => Some(Page::Support),
+        "settings" => Some(Page::Settings),
         _ => None,
     }
 }
@@ -335,6 +347,11 @@ impl App {
                 .unwrap_or(None)
                 .map(|v| v != "0")
                 .unwrap_or(true);
+            if let Some(v) = database::get_setting(conn, "accent_color").unwrap_or(None) {
+                if let Some(c) = crate::palette::parse_hex(&v) {
+                    crate::palette::set_accent(c);
+                }
+            }
         }
 
         // Command-line overrides win over the saved settings.
@@ -362,6 +379,7 @@ impl App {
                 .unwrap_or(saved_dev_tool.unwrap_or(DevTool::JsonYaml)),
             cks_autocopy,
             nav_open,
+            accent_input: crate::palette::to_hex(crate::palette::accent()),
             progress: None,
             close_pos: None,
             dark,
@@ -480,6 +498,25 @@ pub fn update(app: &mut App, msg: Msg) -> Task<Msg> {
             persist_settings(&app.db, "lang", lang.code());
             Task::none()
         }
+        Msg::AccentInput(text) => {
+            if let Some(color) = crate::palette::parse_hex(&text) {
+                crate::palette::set_accent(color);
+                persist_settings(&app.db, "accent_color", &crate::palette::to_hex(color));
+            }
+            app.accent_input = text;
+            Task::none()
+        }
+        Msg::AccentPreset(color) => {
+            crate::palette::set_accent(color);
+            persist_settings(&app.db, "accent_color", &crate::palette::to_hex(color));
+            app.accent_input = crate::palette::to_hex(color);
+            Task::none()
+        }
+        Msg::SetDark(dark) => {
+            app.dark = dark;
+            persist_settings(&app.db, "theme", if dark { "dark" } else { "light" });
+            Task::none()
+        }
         Msg::CloseRequested(id) => {
             iced::window::get_maximized(id).map(move |maximized| Msg::CloseMax(id, maximized))
         }
@@ -584,6 +621,7 @@ pub(crate) fn test_app() -> App {
         progress: None,
         cks_autocopy: true,
         close_pos: None,
+        accent_input: crate::palette::to_hex(crate::palette::accent()),
         history: Vec::new(),
         history_note: None,
         ren_recent: Vec::new(),
@@ -687,6 +725,7 @@ mod session_tests {
             Page::History,
             Page::System,
             Page::Support,
+            Page::Settings,
         ] {
             assert_eq!(page_from_code(page_code(page)), Some(page));
         }

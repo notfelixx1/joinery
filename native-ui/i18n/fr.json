@@ -125,5 +125,12 @@
   "history.confirm": "Annuler le renommage de {n} fichier(s) ? Les noms reviennent à leurs valeurs d'origine.",
   "renamer.allowOverwrite.hint": "Si coché, les cibles existantes sont remplacées.",
   "diff.giantConfirm": "Diff géant : {n} lignes. La construction peut être longue et prendre beaucoup de mémoire. Continuer ?",
-  "checksum.autocopy": "Copier le hachage automatiquement"
+  "checksum.autocopy": "Copier le hachage automatiquement",
+  "nav.settings": "Paramètres",
+  "settings.appearance": "Apparence",
+  "settings.functionality": "Fonctionnement",
+  "settings.accent": "Couleur d'accent",
+  "settings.accent.hint": "Hex, ex. #11AA11",
+  "settings.language": "Langue",
+  "settings.dark_theme": "Thème sombre"
 }

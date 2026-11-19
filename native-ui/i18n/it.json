@@ -125,5 +125,12 @@
   "history.confirm": "Annullare la rinomina di {n} file? I nomi tornano a quelli originali.",
   "renamer.allowOverwrite.hint": "Se selezionato, le destinazioni esistenti vengono sostituite.",
   "diff.giantConfirm": "Diff gigante: {n} righe. La costruzione può richiedere tempo e memoria. Continuare?",
-  "checksum.autocopy": "Copia hash automaticamente"
+  "checksum.autocopy": "Copia hash automaticamente",
+  "nav.settings": "Impostazioni",
+  "settings.appearance": "Aspetto",
+  "settings.functionality": "Funzionalità",
+  "settings.accent": "Colore accento",
+  "settings.accent.hint": "Hex, es. #11AA11",
+  "settings.language": "Lingua",
+  "settings.dark_theme": "Tema scuro"
 }

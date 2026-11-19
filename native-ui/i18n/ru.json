@@ -125,5 +125,12 @@
   "history.confirm": "Отменить переименование {n} файл(ов)? Имена вернутся к исходным.",
   "renamer.allowOverwrite.hint": "Если включено — существующие цели будут заменены.",
   "diff.giantConfirm": "Гигантский дифф: {n} строк. Построение может занять время и память. Продолжить?",
-  "checksum.autocopy": "Автокопировать хеш в буфер"
+  "checksum.autocopy": "Автокопировать хеш в буфер",
+  "nav.settings": "Настройки",
+  "settings.appearance": "Внешний вид",
+  "settings.functionality": "Функционал",
+  "settings.accent": "Цвет акцента",
+  "settings.accent.hint": "Hex, например #11AA11",
+  "settings.language": "Язык",
+  "settings.dark_theme": "Тёмная тема"
 }

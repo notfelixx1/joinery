@@ -125,5 +125,12 @@
   "history.confirm": "¿Deshacer el renombrado de {n} archivo(s)? Los nombres vuelven a ser los originales.",
   "renamer.allowOverwrite.hint": "Si está marcado, los archivos existentes se sobrescriben.",
   "diff.giantConfirm": "Diff gigante: {n} líneas. Construirlo puede tardar y usar mucha memoria. ¿Continuar?",
-  "checksum.autocopy": "Copiar el hash automáticamente"
+  "checksum.autocopy": "Copiar el hash automáticamente",
+  "nav.settings": "Ajustes",
+  "settings.appearance": "Apariencia",
+  "settings.functionality": "Funcionamiento",
+  "settings.accent": "Color de acento",
+  "settings.accent.hint": "Hex, p. ej. #11AA11",
+  "settings.language": "Idioma",
+  "settings.dark_theme": "Tema oscuro"
 }

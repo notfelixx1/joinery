@@ -125,5 +125,12 @@
   "history.confirm": "Скасувати перейменування {n} файл(ів)? Назви повернуться до початкових.",
   "renamer.allowOverwrite.hint": "Якщо увімкнено — наявні цілі буде замінено.",
   "diff.giantConfirm": "Величезний диф: {n} рядків. Побудова може зайняти час і пам'ять. Продовжити?",
-  "checksum.autocopy": "Автокопіювати хеш у буфер"
+  "checksum.autocopy": "Автокопіювати хеш у буфер",
+  "nav.settings": "Налаштування",
+  "settings.appearance": "Зовнішній вигляд",
+  "settings.functionality": "Функціонал",
+  "settings.accent": "Колір акценту",
+  "settings.accent.hint": "Hex, наприклад #11AA11",
+  "settings.language": "Мова",
+  "settings.dark_theme": "Темна тема"
 }
