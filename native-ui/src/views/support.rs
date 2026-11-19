@@ -1,5 +1,5 @@
 use iced::widget::{button, column, container, row, text};
-use iced::{Alignment, Color, Element, Length};
+use iced::{Alignment, Element, Length};
 
 use crate::app::{App, Msg};
 use crate::i18n::tr;
@@ -31,12 +31,14 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     .spacing(12)
     .width(Length::Fill);
 
-    let links = column![link_row(
+    let links = container(column![link_row(
+        crate::icons::heart(),
         "Ko-fi",
         "ko-fi.com/notfst",
         "https://ko-fi.com/notfst",
-    )]
-    .spacing(8);
+    )])
+    .width(Length::Fill)
+    .align_x(Alignment::Center);
 
     column![card(
         column![
@@ -45,6 +47,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             container(amount)
                 .width(Length::Fixed(480.0))
                 .padding(20)
+                .align_x(Alignment::Center)
                 .style(move |_| iced::widget::container::Style {
                     background: None,
                     text_color: Some(s.text),
@@ -74,35 +77,42 @@ fn point(key: &'static str, lang: crate::i18n::Lang) -> Element<'static, Msg> {
 
 /// One donation link: the whole row is a button that opens the browser.
 fn link_row(
+    icon: iced::widget::svg::Svg<'static>,
     label: &'static str,
     display_url: &'static str,
     open_url: &'static str,
 ) -> Element<'static, Msg> {
+    let s = palette::scheme();
     button(
         row![
+            icon.width(Length::Fixed(16.0))
+                .height(Length::Fixed(16.0))
+                .style(move |_, _| iced::widget::svg::Style {
+                    color: Some(s.accent_text),
+                },),
             text(label).size(13),
             text(display_url).size(12).style(muted()),
         ]
         .spacing(8)
         .align_y(Alignment::Center),
     )
-    .padding([6, 10])
+    .padding([10, 18])
     .style(move |_, status| {
-        let mut st = button::Style {
-            background: Some(Color::TRANSPARENT.into()),
-            text_color: palette::scheme().text,
+        let hovered = matches!(status, button::Status::Hovered);
+        button::Style {
+            background: if hovered {
+                Some(palette::mix(s.accent, s.text, 0.10).into())
+            } else {
+                Some(s.accent.into())
+            },
+            text_color: s.accent_text,
             border: iced::Border {
-                color: palette::scheme().border,
+                color: if hovered { s.text } else { s.accent },
                 width: 1.0,
-                radius: 8.0.into(),
+                radius: 10.0.into(),
             },
             shadow: Default::default(),
-        };
-        if let button::Status::Hovered = status {
-            st.background = Some(palette::scheme().surface_hover.into());
-            st.border.color = palette::scheme().accent;
         }
-        st
     })
     .on_press(Msg::OpenUrl(open_url))
     .into()

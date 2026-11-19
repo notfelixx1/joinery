@@ -131,6 +131,99 @@ pub fn text_color(color: Color) -> impl Fn(&iced::Theme) -> text::Style + Copy {
     move |_| text::Style { color: Some(color) }
 }
 
+/// Themed pick-list field: surface background, themed border, accent
+/// handle on hover. Replaces the default gray style that clashed with
+/// the dark theme.
+pub fn pick_field_style(
+    _theme: &iced::Theme,
+    status: iced::widget::pick_list::Status,
+) -> iced::widget::pick_list::Style {
+    let s = palette::scheme();
+    let (bg, border_c, handle_c) = match status {
+        iced::widget::pick_list::Status::Hovered | iced::widget::pick_list::Status::Opened => {
+            (s.surface_hover, s.accent, s.accent)
+        }
+        _ => (s.surface, s.border, s.text_muted),
+    };
+    iced::widget::pick_list::Style {
+        text_color: s.text,
+        placeholder_color: s.text_muted,
+        handle_color: handle_c,
+        background: bg.into(),
+        border: iced::Border {
+            color: border_c,
+            width: 1.0,
+            radius: 6.0.into(),
+        },
+    }
+}
+
+/// Themed dropdown menu for the pick list.
+pub fn pick_menu_style(_theme: &iced::Theme) -> iced::overlay::menu::Style {
+    let s = palette::scheme();
+    let selected_bg = s.surface_active;
+    iced::overlay::menu::Style {
+        background: s.surface.into(),
+        border: iced::Border {
+            color: s.border,
+            width: 1.0,
+            radius: 8.0.into(),
+        },
+        text_color: s.text,
+        selected_text_color: s.accent,
+        selected_background: selected_bg.into(),
+    }
+}
+
+/// Themed checkbox: accent fill with readable check when checked,
+/// surface with border when not.
+pub fn checkbox_style(
+    _theme: &iced::Theme,
+    status: iced::widget::checkbox::Status,
+) -> iced::widget::checkbox::Style {
+    let s = palette::scheme();
+    let is_checked = match status {
+        iced::widget::checkbox::Status::Active { is_checked }
+        | iced::widget::checkbox::Status::Hovered { is_checked }
+        | iced::widget::checkbox::Status::Disabled { is_checked } => is_checked,
+    };
+    let hovered = matches!(status, iced::widget::checkbox::Status::Hovered { .. });
+    if is_checked {
+        iced::widget::checkbox::Style {
+            background: s.accent.into(),
+            icon_color: s.accent_text,
+            border: iced::Border {
+                color: if hovered { s.text } else { s.accent },
+                width: 1.0,
+                radius: 4.0.into(),
+            },
+            text_color: None,
+        }
+    } else {
+        iced::widget::checkbox::Style {
+            background: if hovered { s.surface_hover } else { s.surface }.into(),
+            icon_color: Color::TRANSPARENT,
+            border: iced::Border {
+                color: if hovered { s.accent } else { s.border },
+                width: 1.0,
+                radius: 4.0.into(),
+            },
+            text_color: None,
+        }
+    }
+}
+
+/// Alternating row tint for long lists: odd rows get a faint mix of
+/// the surface toward the text color.
+pub fn zebra(idx: usize) -> Option<iced::Color> {
+    let s = palette::scheme();
+    if idx % 2 == 1 {
+        Some(palette::mix(s.surface, s.text, 0.04))
+    } else {
+        None
+    }
+}
+
 pub fn muted() -> impl Fn(&iced::Theme) -> text::Style + Copy {
     let color = palette::scheme().text_muted;
     move |_| text::Style { color: Some(color) }
@@ -810,7 +903,9 @@ fn topbar(app: &App) -> Element<'_, Msg> {
         iced::widget::horizontal_space(),
         iced::widget::pick_list(Lang::ALL, Some(app.lang), Msg::SetLang)
             .text_size(12)
-            .width(Length::Shrink),
+            .width(Length::Shrink)
+            .style(pick_field_style)
+            .menu_style(pick_menu_style),
     ]
     .spacing(4)
     .align_y(Alignment::Center)

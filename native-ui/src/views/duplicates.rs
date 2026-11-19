@@ -1,11 +1,13 @@
-use iced::widget::{checkbox, column, row, scrollable, text, text_input};
+use iced::widget::{checkbox, column, container, row, scrollable, text, text_input};
 use iced::{font, Alignment, Element, Length};
 
 use crate::app::duplicates::Msg as DupMsg;
 use crate::app::{App, Msg};
 use crate::format::format_bytes;
 use crate::i18n::{fmt, tr};
-use crate::views::{btn, btn_danger, card, empty_state, error_box, muted, ok_box, recent_block};
+use crate::views::{
+    btn, btn_danger, card, checkbox_style, empty_state, error_box, muted, ok_box, recent_block,
+};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
     let lang = app.lang;
@@ -170,27 +172,35 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             let mut groups_col = column![].spacing(12).width(Length::Fill);
             for (index, group) in result.groups.iter().enumerate() {
                 let mut files_col = column![].spacing(0).width(Length::Fill);
-                for file in &group.files {
+                for (file_index, file) in group.files.iter().enumerate() {
                     let path = file.path.to_string_lossy().to_string();
                     let checked = d.selected.get(&path).copied().unwrap_or(false);
                     let path_for_cb = path.clone();
                     files_col = files_col.push(
-                        row![
-                            checkbox("", checked)
-                                .on_toggle(move |v| {
-                                    Msg::Duplicates(DupMsg::Toggle(path_for_cb.clone(), v))
-                                })
-                                .size(14),
-                            text(path.clone())
-                                .size(12)
-                                .font(font::Font::MONOSPACE)
-                                .style(muted())
-                                .width(Length::Fill)
-                                .wrapping(iced::widget::text::Wrapping::Word),
-                        ]
-                        .spacing(8)
-                        .align_y(Alignment::Center)
-                        .padding([4, 8]),
+                        container(
+                            row![
+                                checkbox("", checked)
+                                    .on_toggle(move |v| {
+                                        Msg::Duplicates(DupMsg::Toggle(path_for_cb.clone(), v))
+                                    })
+                                    .size(14)
+                                    .style(checkbox_style),
+                                text(path.clone())
+                                    .size(12)
+                                    .font(font::Font::MONOSPACE)
+                                    .style(muted())
+                                    .width(Length::Fill)
+                                    .wrapping(iced::widget::text::Wrapping::Word),
+                            ]
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .padding([4, 8]),
+                        )
+                        .width(Length::Fill)
+                        .style(move |_| container::Style {
+                            background: crate::views::zebra(file_index).map(Into::into),
+                            ..Default::default()
+                        }),
                     );
                 }
                 groups_col = groups_col.push(card(

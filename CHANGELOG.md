@@ -29,6 +29,13 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   by long operations: per-file checksum hashing and duplicate
   scanning.
 
+- **Visual polish pass** — themed pick lists (field and dropdown menu)
+  and checkboxes that follow the user palette; hover lift with a soft
+  shadow on the home page tool cards; zebra rows in the duplicates and
+  analyzer lists; the Support page centers its donate card and turns
+  the Ko-fi link into a primary button with a heart icon; the System
+  page shows its roadmap note as quiet text instead of a stray card.
+
 ### Changed
 
 - **Themes removed** — the dark/light toggle (and the `--dark` /

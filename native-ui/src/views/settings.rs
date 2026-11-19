@@ -4,7 +4,7 @@
 use iced::widget::{checkbox, column, container, row, text, text_input};
 use iced::{font, Alignment, Element, Length};
 
-use super::{btn, card_style, muted};
+use super::{btn, card_style, checkbox_style, muted, pick_field_style, pick_menu_style};
 use crate::app::checksum::Msg as CksMsg;
 use crate::app::{App, Msg};
 use crate::i18n::{tr, Lang};
@@ -100,11 +100,24 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         );
     }
 
+    let language_row = row![
+        text(tr(lang, "settings.language")).size(13),
+        iced::widget::horizontal_space(),
+        iced::widget::pick_list(Lang::ALL, Some(app.lang), Msg::SetLang)
+            .text_size(13)
+            .width(Length::Shrink)
+            .style(pick_field_style)
+            .menu_style(pick_menu_style),
+    ]
+    .width(Length::Fill)
+    .align_y(Alignment::Center);
+
     let appearance = card(
         column![
             section_title(lang, "settings.appearance"),
             presets,
             color_rows,
+            language_row,
         ]
         .spacing(14)
         .width(Length::Fill)
@@ -117,7 +130,8 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         iced::widget::horizontal_space(),
         checkbox("", app.cks_autocopy)
             .on_toggle(|v| Msg::Checksum(CksMsg::Autocopy(v)))
-            .size(14),
+            .size(14)
+            .style(checkbox_style),
     ]
     .width(Length::Fill)
     .align_y(Alignment::Center)

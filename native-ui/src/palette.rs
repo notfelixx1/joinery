@@ -189,7 +189,7 @@ pub fn to_hex(c: Color) -> String {
 }
 
 /// Mix `c` into `base` at ratio `t` (0 → base, 1 → c).
-fn mix(base: Color, c: Color, t: f32) -> Color {
+pub fn mix(base: Color, c: Color, t: f32) -> Color {
     Color {
         r: base.r + (c.r - base.r) * t,
         g: base.g + (c.g - base.g) * t,

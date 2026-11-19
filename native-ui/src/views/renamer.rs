@@ -7,6 +7,7 @@ use crate::app::renamer::Msg as RenMsg;
 use crate::app::{App, Msg};
 use crate::i18n::{fmt, tr};
 use crate::palette;
+use crate::views::checkbox_style;
 use crate::views::{
     btn, btn_danger, btn_primary, card, empty_state, error_box, field, muted, ok_box, recent_block,
     text_color,
@@ -126,10 +127,14 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .style(muted()),
             row![
                 checkbox(tr(lang, "renamer.subfolders"), r.include_subfolders)
+                    .style(checkbox_style)
+                    .style(checkbox_style)
                     .on_toggle(|v| Msg::Renamer(RenMsg::Subfolders(v)))
                     .text_size(13),
                 iced::widget::tooltip(
                     checkbox(tr(lang, "renamer.allowOverwrite"), r.allow_overwrite)
+                        .style(checkbox_style)
+                        .style(checkbox_style)
                         .on_toggle(|v| Msg::Renamer(RenMsg::AllowOverwrite(v)))
                         .text_size(13),
                     text(tr(lang, "renamer.allowOverwrite.hint")).size(12),

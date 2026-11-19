@@ -8,6 +8,17 @@ use crate::i18n::tr;
 use crate::palette;
 use crate::views::{btn, card, empty_state, error_box, muted, recent_block, text_color};
 
+/// Alternating row background for long analyzer lists.
+fn zebra_row<'a>(idx: usize, el: impl Into<Element<'a, Msg>>) -> Element<'a, Msg> {
+    container(el.into())
+        .width(Length::Fill)
+        .style(move |_| container::Style {
+            background: crate::views::zebra(idx).map(Into::into),
+            ..Default::default()
+        })
+        .into()
+}
+
 pub fn view(app: &App) -> Element<'_, Msg> {
     let lang = app.lang;
     let a = &app.ana;
@@ -87,7 +98,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
         let max_size = analysis.entries.iter().map(|e| e.size).max().unwrap_or(0);
         let mut entries = column![].spacing(0).width(Length::Fill);
-        for entry in &analysis.entries {
+        for (entry_idx, entry) in analysis.entries.iter().enumerate() {
             let bar_width = percent(entry.size, analysis.total_size);
             let is_largest = entry.size > 0 && entry.size == max_size;
             // Label links so their uncounted content is not misread as
@@ -97,7 +108,8 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             } else {
                 entry.name.clone()
             };
-            entries = entries.push(
+            entries = entries.push(zebra_row(
+                entry_idx,
                 row![
                     text(name)
                         .size(12)
@@ -148,13 +160,14 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .spacing(8)
                 .align_y(Alignment::Center)
                 .padding([4, 8]),
-            );
+            ));
         }
 
         let mut largest = column![].spacing(0).width(Length::Fill);
-        for file in &analysis.largest {
+        for (l_idx, file) in analysis.largest.iter().enumerate() {
             let path_str = file.path.to_string_lossy().to_string();
-            largest = largest.push(
+            largest = largest.push(zebra_row(
+                l_idx,
                 row![
                     text(path_str)
                         .size(12)
@@ -169,7 +182,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .spacing(8)
                 .align_y(Alignment::Center)
                 .padding([4, 8]),
-            );
+            ));
         }
 
         col = col.push(card(totals));

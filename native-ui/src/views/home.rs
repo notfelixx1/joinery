@@ -161,14 +161,27 @@ fn tool_card(app: &App, tool: &ToolCard) -> Element<'static, Msg> {
         .width(Length::Fill)
         .style(move |_, status| {
             let mut st = card_style();
+            let mut shadow = iced::Shadow {
+                color: iced::Color {
+                    r: 0.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 0.30,
+                },
+                offset: iced::Vector::new(0.0, 2.0),
+                blur_radius: 8.0,
+            };
             if let button::Status::Hovered = status {
                 st.border.color = s.accent;
+                st.background = Some(palette::mix(s.surface, s.text, 0.03).into());
+                shadow.blur_radius = 14.0;
+                shadow.color.a = 0.40;
             }
             button::Style {
                 background: st.background,
                 text_color: st.text_color.unwrap_or(s.text),
                 border: st.border,
-                shadow: Default::default(),
+                shadow,
             }
         })
         .on_press(Msg::Nav(page))

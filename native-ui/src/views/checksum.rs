@@ -1,4 +1,4 @@
-use iced::widget::{checkbox, column, row, scrollable, text, text_input};
+use iced::widget::{column, row, scrollable, text, text_input};
 use iced::{font, Alignment, Element, Length};
 
 use joinery_tools::core::checksum;
@@ -103,9 +103,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 |value| Msg::Checksum(CksMsg::Algorithm(value.into())),
             )
             .text_size(13),
-            checkbox(tr(lang, "checksum.autocopy"), app.cks_autocopy,)
-                .size(14)
-                .on_toggle(|v| Msg::Checksum(CksMsg::Autocopy(v))),
             btn_primary(
                 &if c.busy {
                     tr(lang, "common.loading").to_string()

@@ -1,8 +1,9 @@
 use iced::widget::{column, row, text};
-use iced::{font, Element, Length};
+use iced::{Element, Length};
 
 use crate::app::{App, Msg};
 use crate::i18n::tr;
+use crate::palette;
 use crate::views::{card, muted};
 
 pub fn view(app: &App) -> Element<'_, Msg> {
@@ -33,12 +34,14 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             .spacing(8)
             .width(Length::Fill),
     ));
-    col = col.push(card(
+    col = col.push(
         row![
-            text("v0.2")
-                .size(12)
-                .font(font::Font::MONOSPACE)
-                .style(muted()),
+            crate::icons::clock()
+                .width(Length::Fixed(14.0))
+                .height(Length::Fixed(14.0))
+                .style(move |_, _| iced::widget::svg::Style {
+                    color: Some(palette::scheme().text_muted),
+                }),
             text(tr(lang, "system.coming"))
                 .size(12)
                 .style(muted())
@@ -47,7 +50,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         ]
         .spacing(8)
         .align_y(iced::Alignment::Center),
-    ));
+    );
 
     col.into()
 }
