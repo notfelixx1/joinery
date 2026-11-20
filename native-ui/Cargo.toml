@@ -1,6 +1,6 @@
 [package]
 name = "joinery"
-version = "0.1.2"
+version = "0.1.3"
 description = "Joinery Tools — native iced frontend"
 authors = ["notfelixx1"]
 license = "MIT OR Apache-2.0"
