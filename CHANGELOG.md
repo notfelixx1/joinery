@@ -3,6 +3,19 @@
 All notable changes to Joinery Tools are documented here.
 Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.4] — 2026-11-20
+
+### Changed
+
+- **Unslop pass** — quiet dot-separated badges on the home page
+  instead of three pills; text diff panes get a surface background, a
+  themed border and a muted "paste text or load a file" hint while
+  empty, with Clear as a ghost button; duplicates and analyzer show a
+  "folder selected" ready state instead of an empty body; system page
+  values are monospace; font sizes are normalized to the 12/13/15/20/28
+  scale; settings color rows keep a 560px measure; the renamer
+  checkboxes and the language pick list follow the themed styles.
+
 ## [0.1.3] — 2026-11-20
 
 ### Added
