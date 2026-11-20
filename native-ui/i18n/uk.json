@@ -138,5 +138,10 @@
   "settings.color.cards": "Картки та панелі",
   "settings.color.text": "Текст",
   "settings.pal.dark": "Темна палітра",
-  "settings.pal.light": "Світла палітра"
+  "settings.pal.light": "Світла палітра",
+  "dup.ready.title": "Папку вибрано",
+  "dup.ready.hint": "Тисни «Сканувати» — знайду дублікати файлів за вмістом.",
+  "ana.ready.title": "Папку вибрано",
+  "ana.ready.hint": "Тисни «Аналізувати» — покажу, що займає місце на диску.",
+  "diff.emptyHint": "Встав текст або завантаж файл"
 }

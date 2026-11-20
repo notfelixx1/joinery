@@ -138,5 +138,10 @@
   "settings.color.cards": "Schede e superfici",
   "settings.color.text": "Testo",
   "settings.pal.dark": "Tavolozza scura",
-  "settings.pal.light": "Tavolozza chiara"
+  "settings.pal.light": "Tavolozza chiara",
+  "dup.ready.title": "Cartella selezionata",
+  "dup.ready.hint": "Premi Scansiona: troverò i file duplicati per contenuto.",
+  "ana.ready.title": "Cartella selezionata",
+  "ana.ready.hint": "Premi Analizza: ti mostrerò cosa occupa lo spazio.",
+  "diff.emptyHint": "Incolla testo o carica un file"
 }

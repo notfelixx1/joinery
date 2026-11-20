@@ -96,7 +96,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                 .style(muted())
                 .width(Length::Fill)
                 .wrapping(iced::widget::text::Wrapping::Word),
-            text(tr(lang, "checksum.algorithm")).size(11).style(muted()),
+            text(tr(lang, "checksum.algorithm")).size(12).style(muted()),
             iced::widget::pick_list(
                 ALGS,
                 Some(<checksum::Algorithm as Into<Alg>>::into(c.algorithm)),
@@ -138,7 +138,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
 
         body = body.push(
             column![
-                text(tr(lang, "checksum.verify")).size(11).style(muted()),
+                text(tr(lang, "checksum.verify")).size(12).style(muted()),
                 text_input(tr(lang, "checksum.verify.hint"), &c.expected)
                     .on_input(|v| Msg::Checksum(CksMsg::Expected(v)))
                     .size(13)

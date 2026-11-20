@@ -734,7 +734,7 @@ fn sidebar(app: &App) -> Element<'_, Msg> {
         row![
             logo(),
             column![
-                text("Joinery").size(16).font(iced::Font {
+                text("Joinery").size(15).font(iced::Font {
                     weight: iced::font::Weight::Semibold,
                     ..iced::Font::default()
                 }),
@@ -880,7 +880,7 @@ fn breadcrumb<'a>(
 ) -> Element<'a, Msg> {
     row![
         text(tr(app.lang, section_key)).size(20).style(muted()),
-        text("→").size(16).style(muted()),
+        text("→").size(15).style(muted()),
         text(tr(app.lang, tool_key)).size(20),
     ]
     .spacing(8)

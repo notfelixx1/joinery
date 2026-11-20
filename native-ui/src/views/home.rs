@@ -49,7 +49,7 @@ const TOOLS: [ToolCard; 6] = [
 pub fn view(app: &App) -> Element<'_, Msg> {
     let hero = column![
         text(tr(app.lang, "home.hero.title"))
-            .size(26)
+            .size(28)
             .font(iced::Font {
                 weight: iced::font::Weight::Semibold,
                 ..iced::Font::default()
@@ -57,21 +57,23 @@ pub fn view(app: &App) -> Element<'_, Msg> {
             .width(Length::Fill)
             .wrapping(iced::widget::text::Wrapping::Word),
         text(tr(app.lang, "home.hero.subtitle"))
-            .size(14)
+            .size(15)
             .style(muted())
             .width(Length::Fill)
             .wrapping(iced::widget::text::Wrapping::Word),
-        row![
-            badge(tr(app.lang, "home.badges.offline")),
-            badge(tr(app.lang, "home.badges.privacy")),
-            badge(tr(app.lang, "home.badges.free")),
-        ]
-        .spacing(8),
+        text(format!(
+            "{} · {} · {}",
+            tr(app.lang, "home.badges.offline"),
+            tr(app.lang, "home.badges.privacy"),
+            tr(app.lang, "home.badges.free")
+        ))
+        .size(13)
+        .style(muted()),
     ]
     .spacing(12)
     .width(Length::Fill);
 
-    let mut tools_col = column![text(tr(app.lang, "home.tools.title")).size(14),]
+    let mut tools_col = column![text(tr(app.lang, "home.tools.title")).size(15),]
         .spacing(16)
         .width(Length::Fill)
         .padding(iced::Padding {
@@ -93,23 +95,6 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     column![hero, tools_col]
         .spacing(0)
         .width(Length::Fill)
-        .into()
-}
-
-fn badge<'a>(label: &'a str) -> Element<'a, Msg> {
-    let s = palette::scheme();
-    container(text(label).size(12))
-        .padding([8, 12])
-        .style(move |_| container::Style {
-            background: Some(s.surface_active.into()),
-            text_color: Some(s.text),
-            border: iced::Border {
-                color: s.border,
-                width: 1.0,
-                radius: 20.0.into(),
-            },
-            ..Default::default()
-        })
         .into()
 }
 

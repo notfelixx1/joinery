@@ -77,6 +77,15 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         .align_y(Alignment::Center),
     ));
 
+    if a.folder.is_some() && a.analysis.is_none() && !a.busy {
+        col = col.push(empty_state(
+            crate::icons::pie_chart,
+            tr(lang, "ana.ready.title"),
+            tr(lang, "ana.ready.hint"),
+            None,
+        ));
+    }
+
     if let Some(err) = &a.error {
         col = col.push(error_box(err));
     }

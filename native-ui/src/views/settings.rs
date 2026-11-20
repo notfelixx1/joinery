@@ -12,7 +12,7 @@ use crate::palette;
 
 fn section_title(lang: Lang, key: &str) -> Element<'static, Msg> {
     text(tr(lang, key))
-        .size(14)
+        .size(15)
         .font(font::Font {
             weight: font::Weight::Semibold,
             ..font::Font::default()
@@ -47,7 +47,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
     .spacing(8)
     .align_y(Alignment::Center);
 
-    let mut color_rows = column![].spacing(10).width(Length::Fill);
+    let mut color_rows = column![].spacing(10).width(Length::Fixed(560.0));
     for slot in palette::ColorSlot::ALL {
         let value = app
             .color_inputs
@@ -88,7 +88,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                         ..Default::default()
                     }),
                 text(normalized)
-                    .size(10)
+                    .size(12)
                     .font(font::Font::MONOSPACE)
                     .style(move |_| iced::widget::text::Style {
                         color: Some(hint_color),
@@ -130,7 +130,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         iced::widget::horizontal_space(),
         checkbox("", app.cks_autocopy)
             .on_toggle(|v| Msg::Checksum(CksMsg::Autocopy(v)))
-            .size(14)
+            .size(15)
             .style(checkbox_style),
     ]
     .width(Length::Fill)

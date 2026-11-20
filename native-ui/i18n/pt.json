@@ -138,5 +138,10 @@
   "settings.color.cards": "Cartões e superfícies",
   "settings.color.text": "Texto",
   "settings.pal.dark": "Paleta escura",
-  "settings.pal.light": "Paleta clara"
+  "settings.pal.light": "Paleta clara",
+  "dup.ready.title": "Pasta selecionada",
+  "dup.ready.hint": "Clique em Escanear — vou encontrar arquivos duplicados por conteúdo.",
+  "ana.ready.title": "Pasta selecionada",
+  "ana.ready.hint": "Clique em Analisar — vou mostrar o que ocupa o espaço.",
+  "diff.emptyHint": "Cole texto ou carregue um arquivo"
 }

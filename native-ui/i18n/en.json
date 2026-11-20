@@ -138,5 +138,10 @@
   "settings.color.cards": "Cards & surfaces",
   "settings.color.text": "Text",
   "settings.pal.dark": "Dark palette",
-  "settings.pal.light": "Light palette"
+  "settings.pal.light": "Light palette",
+  "dup.ready.title": "Folder selected",
+  "dup.ready.hint": "Hit Scan — I'll find duplicate files by content.",
+  "ana.ready.title": "Folder selected",
+  "ana.ready.hint": "Hit Analyze — I'll show what takes up the space.",
+  "diff.emptyHint": "Paste text or load a file"
 }

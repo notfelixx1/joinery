@@ -138,5 +138,10 @@
   "settings.color.cards": "Karten & Flächen",
   "settings.color.text": "Text",
   "settings.pal.dark": "Dunkle Palette",
-  "settings.pal.light": "Helle Palette"
+  "settings.pal.light": "Helle Palette",
+  "dup.ready.title": "Ordner ausgewählt",
+  "dup.ready.hint": "Auf Scannen klicken — ich finde doppelte Dateien nach Inhalt.",
+  "ana.ready.title": "Ordner ausgewählt",
+  "ana.ready.hint": "Auf Analysieren klicken — ich zeige, was den Speicher belegt.",
+  "diff.emptyHint": "Text einfügen oder Datei laden"
 }

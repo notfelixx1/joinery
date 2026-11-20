@@ -163,16 +163,16 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         rows = rows.push(
             row![
                 text(tr(lang, "common.name"))
-                    .size(11)
+                    .size(12)
                     .style(muted())
                     .width(Length::FillPortion(4)),
-                text("→").size(11).style(muted()).width(Length::Fixed(24.0)),
+                text("→").size(12).style(muted()).width(Length::Fixed(24.0)),
                 text(tr(lang, "common.name") /* target */)
-                    .size(11)
+                    .size(12)
                     .style(muted())
                     .width(Length::FillPortion(2)),
                 text(tr(lang, "common.status"))
-                    .size(11)
+                    .size(12)
                     .style(muted())
                     .width(Length::Fixed(110.0)),
             ]

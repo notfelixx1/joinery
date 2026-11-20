@@ -138,5 +138,10 @@
   "settings.color.cards": "Карточки и панели",
   "settings.color.text": "Текст",
   "settings.pal.dark": "Тёмная палитра",
-  "settings.pal.light": "Светлая палитра"
+  "settings.pal.light": "Светлая палитра",
+  "dup.ready.title": "Папка выбрана",
+  "dup.ready.hint": "Жми «Сканировать» — найду дубликаты файлов по содержимому.",
+  "ana.ready.title": "Папка выбрана",
+  "ana.ready.hint": "Жми «Анализировать» — покажу, что занимает место на диске.",
+  "diff.emptyHint": "Вставь текст или загрузи файл"
 }

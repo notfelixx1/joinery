@@ -138,5 +138,10 @@
   "settings.color.cards": "Cartes et surfaces",
   "settings.color.text": "Texte",
   "settings.pal.dark": "Palette sombre",
-  "settings.pal.light": "Palette claire"
+  "settings.pal.light": "Palette claire",
+  "dup.ready.title": "Dossier sélectionné",
+  "dup.ready.hint": "Lancez Analyser — je chercherai les fichiers en double par contenu.",
+  "ana.ready.title": "Dossier sélectionné",
+  "ana.ready.hint": "Lancez Analyser — je vous montre ce qui prend de la place.",
+  "diff.emptyHint": "Colle du texte ou charge un fichier"
 }

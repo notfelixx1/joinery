@@ -138,5 +138,10 @@
   "settings.color.cards": "Tarjetas y superficies",
   "settings.color.text": "Texto",
   "settings.pal.dark": "Paleta oscura",
-  "settings.pal.light": "Paleta clara"
+  "settings.pal.light": "Paleta clara",
+  "dup.ready.title": "Carpeta seleccionada",
+  "dup.ready.hint": "Pulsa Escanear y busco archivos duplicados por contenido.",
+  "ana.ready.title": "Carpeta seleccionada",
+  "ana.ready.hint": "Pulsa Analizar y te muestro qué ocupa el espacio.",
+  "diff.emptyHint": "Pega texto o carga un archivo"
 }

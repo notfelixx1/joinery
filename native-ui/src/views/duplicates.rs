@@ -72,7 +72,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                     .style(muted())
                     .width(Length::Fill)
                     .wrapping(iced::widget::text::Wrapping::Word),
-                text(tr(lang, "dup.minSize")).size(11).style(muted()),
+                text(tr(lang, "dup.minSize")).size(12).style(muted()),
                 text_input("1", &d.min_size)
                     .on_input(|v| Msg::Duplicates(DupMsg::MinSize(v)))
                     .size(13)
@@ -97,6 +97,15 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         .spacing(4)
         .width(Length::Fill),
     ));
+
+    if d.folder.is_some() && d.result.is_none() && !d.scanning {
+        col = col.push(empty_state(
+            crate::icons::copy,
+            tr(lang, "dup.ready.title"),
+            tr(lang, "dup.ready.hint"),
+            None,
+        ));
+    }
 
     if let Some(err) = &d.error {
         col = col.push(error_box(err));
@@ -167,7 +176,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
         if result.groups.is_empty() {
             results = results.push(text(tr(lang, "common.noResults")).size(13).style(muted()));
         } else {
-            results = results.push(text(tr(lang, "dup.keepHint")).size(11).style(muted()));
+            results = results.push(text(tr(lang, "dup.keepHint")).size(12).style(muted()));
 
             let mut groups_col = column![].spacing(12).width(Length::Fill);
             for (index, group) in result.groups.iter().enumerate() {
@@ -183,7 +192,7 @@ pub fn view(app: &App) -> Element<'_, Msg> {
                                     .on_toggle(move |v| {
                                         Msg::Duplicates(DupMsg::Toggle(path_for_cb.clone(), v))
                                     })
-                                    .size(14)
+                                    .size(15)
                                     .style(checkbox_style),
                                 text(path.clone())
                                     .size(12)
