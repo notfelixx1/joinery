@@ -59,7 +59,7 @@ bundled browser and no network access.
 
 One SQLite database in the OS app-data directory:
 
-- `settings` — theme, language (key/value).
+- `settings` — language, user palette (five colors), session state, window geometry (key/value).
 - `undo_journal` — applied rename batches (JSON payload + `undone` flag).
 
 Nothing else is persisted; nothing leaves the machine.

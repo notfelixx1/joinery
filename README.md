@@ -7,6 +7,10 @@ Joinery Tools is a local-first desktop toolbox for everyday work with files,
 text and your system. Everything runs on your device — no internet, no
 accounts, no ads, no telemetry.
 
+[![CI](https://github.com/notfelixx1/joinery/actions/workflows/ci.yml/badge.svg)](https://github.com/notfelixx1/joinery/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/notfelixx1/joinery?sort=semver)](https://github.com/notfelixx1/joinery/releases/latest)
+[![License](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue)](https://github.com/notfelixx1/joinery/blob/main/LICENSE-MIT)
+
 [Русская версия ниже](#joinery-tools-по-русски)
 
 ## Why Joinery
@@ -31,19 +35,21 @@ accounts, no ads, no telemetry.
 | **Folder Analyzer** | See what is eating your disk space — per-folder sizes, largest files. |
 | **Checksum** | SHA-256, SHA-1 and MD5 hashes, streamed with 1 MiB read buffers; verify against an expected hash. |
 | **JSON / YAML Validator** | Validate, pretty-print and minify with exact error positions. |
-| **Text Diff** | Line-by-line comparison of two texts or config files. |
+| **Text Diff** | Line-by-line comparison of two texts or config files, powered by an in-house contiguity-first diff engine. |
 
-Also included: a History page with one-click undo of past renames,
-empty-state hints with recent folders, dark & light themes, an
-interface in eight languages (English, Русский, Українська, Español,
-Deutsch, Français, Português, Italiano), SQLite-backed settings and
-undo journal.
+Also included: a Settings page with a user palette — recolor buttons,
+background, sidebar, cards and text via `#RRGGBB`, no themes needed —
+a History page with one-click undo of past renames, session restore
+and window memory, auto-copied checksums, a live progress strip, empty
+state hints with recent folders, an interface in eight languages
+(English, Русский, Українська, Español, Deutsch, Français, Português,
+Italiano), SQLite-backed settings and undo journal.
 
 ## Screenshots
 
-| Light | Dark |
+| Home (default palette) | Settings — user palette |
 | --- | --- |
-| ![Light theme](docs/screenshots/light.png) | ![Dark theme](docs/screenshots/dark.png) |
+| ![Home, dark palette](docs/screenshots/dark.png) | ![Settings](docs/screenshots/settings.png) |
 
 ## Download
 
@@ -53,18 +59,18 @@ Windows, Linux and macOS builds are attached to every release.
 
 ## Command line
 
-Launch straight on a tool, with a preset theme, language or folder:
+Launch straight on a tool, with a preset palette, language or folder:
 
 ```bash
-joinery --renamer --folder "D:\photos" --dark
+joinery --renamer --folder "D:\photos"
 joinery --duplicates --lang ru
+joinery --settings
 ```
 
 Flags: `--renamer` `--duplicates` `--analyzer` `--checksum` `--jsonyaml`
-`--diff` `--history` `--system` `--support` open the matching tool,
-`--dark` / `--light` override the saved theme, `--lang en|ru` switches
-the language, `--folder <path>` preselects a folder, `--help` prints
-the list.
+`--diff` `--history` `--system` `--support` `--settings` open the
+matching page, `--lang en|ru|uk|es|de|fr|pt|it` switches the language,
+`--folder <path>` preselects a folder, `--help` prints the list.
 
 ## Benchmarks
 
@@ -137,10 +143,10 @@ pick whichever suits your project.
 никаких облачных API и обязательного ИИ. Одна программа вместо десяти мелких
 утилит.
 
-**Инструменты 0.1:** массовое переименование файлов (с предпросмотром и
+**Инструменты:** массовое переименование файлов (с предпросмотром и
 отменой), поиск дубликатов (удаление только в корзину и после
 подтверждения), анализ занятого места, контрольные суммы SHA-256/SHA-1/MD5,
-валидатор JSON/YAML, сравнение текстов.
+валидатор JSON/YAML, сравнение текстов на собственном движке.
 
 **Безопасность — преимущество продукта:** опасные операции никогда не
 выполняются сразу. Сначала предпросмотр, затем подтверждение; журнал
